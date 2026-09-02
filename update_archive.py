@@ -33,12 +33,12 @@ if not target_model:
 
 url = f"https://generativelanguage.googleapis.com/v1beta/{target_model}:generateContent?key={api_key}"
 
-# 프롬프트에 link 항목 추가
-prompt = """오늘 온라인 커뮤니티와 SNS에서 직장 일상 및 연애 분야로 추천수/반응이 가장 폭발한 소재 정확히 10개를 뽑아줘.
+prompt = """오늘 온라인 커뮤니티와 SNS에서 폭발적인 반응을 얻은 '직장 일상' 소재 5개, '연애' 소재 5개, 그리고 실제 화제가 된 '인기 인스타툰 레퍼런스' 10개를 포함해 총 20개를 뽑아줘.
 각 항목마다 추천수가 가장 높았던 '실제 베스트 댓글 2~3개'와 댓글 추천수(따봉수)를 함께 구성해줘.
-추가로, 해당 원문 게시물을 볼 수 있는 '실제 접속 URL' 또는 해당 썰을 즉시 찾아볼 수 있는 '검색 URL(트위터/구글 등)'을 link 필드에 반드시 넣어줘.
+원문 게시물을 볼 수 있는 실제 접속 URL 또는 검색 URL을 link 필드에 반드시 넣어줘.
+카테고리(category)는 "직장", "연애", "인스타툰" 중 하나로 정확히 기재해.
 반드시 마크다운 백틱 없이 순수 JSON 배열([...])로만 시작하고 끝나게 출력해.
-형식: [{"rank": 1, "category": "직장", "keyword": "점심값", "title": "선배가 밥 사준다더니", "link": "https://m.pann.nate.com/...", "best_comments": [{"text": "그럴거면 편의점 가자", "likes": 1420}], "reaction_summary": "댓글 600+개", "s": [5, 4, 5, 3, 4]}]"""
+형식: [{"rank": 1, "category": "인스타툰", "keyword": "퇴사 브이로그", "title": "퇴사하고 1년 쉬어본 만화", "link": "https://instagram.com/...", "best_comments": [{"text": "작가님 완전 제 속마음인 줄", "likes": 1420}], "reaction_summary": "댓글 600+개", "s": [5, 4, 5, 3, 4]}]"""
 
 data = {
     "contents": [{"parts": [{"text": prompt}]}]
