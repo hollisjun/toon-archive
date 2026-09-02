@@ -2,11 +2,8 @@ name: Daily Toon Archive
 
 on:
   schedule:
-    # 매일 한국시간 오전 9시 실행
-    # GitHub Actions cron은 UTC 기준
     - cron: "0 0 * * *"
 
-  # 버튼 눌러서 직접 실행도 가능
   workflow_dispatch:
 
 jobs:
@@ -14,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -25,16 +21,8 @@ jobs:
 
       - name: Run toon archive collector
         env:
-
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-
-          GOOGLE_SEARCH_API_KEY: ${{ secrets.GOOGLE_SEARCH_API_KEY }}
-
-          SEARCH_ENGINE_ID: ${{ secrets.SEARCH_ENGINE_ID }}
-
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-
           SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
-
-        run: |
-          python update_archive.py
+        run: python update_archive.py
