@@ -1,0 +1,19 @@
+name: Daily Trend Archive
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: python update_archive.py
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - run: |
+          git config --global user.name "bot"
+          git config --global user.email "bot@github.com"
+          git add data.json
+          git commit -m "Auto: $(date +'%Y-%m-%d') 트렌드 업데이트" || exit 0
+          git push
