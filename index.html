@@ -325,11 +325,10 @@
       <div class="logo">
         TOON TREND ARCHIVE
       </div>
-
-      <div class="subtitle">
-        실제 검색 데이터 + AI 인스타툰 소재 분석
-      </div>
-
+      
+<div class="subtitle">
+  오늘의 인스타툰 소재 TOP 10 · 실제 검색 데이터 + AI 분석
+</div>
     </div>
 
 
@@ -665,23 +664,61 @@ function renderTable() {
 
   let filtered =
     [...archiveData];
-
+  
+filtered.sort(
+  (a, b) =>
+    (b.toon_fit_score || 0) -
+    (a.toon_fit_score || 0)
+);
 
   // 카테고리 필터
 
+ if (
+  currentFilter === "all" &&
+  currentDate === "all"
+) {
+
+  const today =
+    new Date()
+      .toLocaleDateString(
+        "ko-KR",
+        {
+          timeZone: "Asia/Seoul",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit"
+        }
+      )
+      .replaceAll(". ", "-")
+      .replace(".", "");
+
+
+  const todayItems =
+    filtered.filter(
+      item =>
+        formatDateOnly(
+          item.collected_at
+        ) === today
+    );
+
+
+  // 오늘 데이터가 있으면 오늘 TOP 10
+  // 없으면 최근 데이터 TOP 10
   if (
-    currentFilter !== "all"
+    todayItems.length > 0
   ) {
 
     filtered =
-      filtered.filter(
-        item =>
-          item.category ===
-          currentFilter
-      );
+      todayItems.slice(0, 10);
+
+  } else {
+
+    filtered =
+      filtered.slice(0, 10);
 
   }
 
+}
 
   // 날짜 필터
 
@@ -699,7 +736,17 @@ function renderTable() {
 
   }
 
+// 전체 보기에서는 상위 10개만 표시
+if (
+  currentFilter === "all" &&
+  currentDate === "all"
+) {
 
+  filtered =
+    filtered.slice(0, 10);
+
+}
+  
   const tableBody =
     document.getElementById(
       "tableBody"
