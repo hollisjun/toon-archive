@@ -30,8 +30,7 @@ th{background:#f9f8f5;font-weight:700;color:#555}
 .like-badge{color:#e67e22;font-weight:700;font-size:11px;white-space:nowrap}
 .scores{display:flex;gap:4px;font-size:11px;margin-top:6px}
 .score-badge{background:#f0eee9;padding:2px 6px;border-radius:4px;color:#555}
-.link-btn{display:inline-block;margin-left:8px;background:#3b82f6;color:#fff;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:bold;text-decoration:none;vertical-align:middle}
-.link-btn:hover{background:#2563eb}
+.link-btn{display:inline-block;margin-left:8px;color:#fff;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:bold;text-decoration:none;vertical-align:middle}
 .memo-area{display:flex;gap:8px;margin-bottom:12px}
 .memo-area input{flex:1}
 .memo-item{padding:10px;background:#faf9f6;border:1px solid #eee;border-radius:8px;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
@@ -112,13 +111,18 @@ function renderTable() {
   const filtered = currentFilter === 'all' ? day.items : day.items.filter(i => i.category === currentFilter);
   
   document.getElementById('tableBody').innerHTML = filtered.map(item => {
-    // AI가 만든 링크 대신, 제목이나 키워드로 구글 검색을 하도록 안전한 링크 생성
-    const searchQuery = encodeURIComponent(item.title || item.keyword);
-    let searchUrl = `https://www.google.com/search?q=${searchQuery}`;
+    let linkHtml = '';
     
-    // 인스타툰 카테고리면 인스타그램 안에서 검색하는 느낌으로 검색어 보강
-    if(item.category === '인스타툰') {
-      searchUrl = `https://www.google.com/search?q=site:instagram.com 인스타툰 ${searchQuery}`;
+    if (item.category === '인스타툰') {
+      // 인스타툰은 AI가 가져온 실제 링크를 그대로 사용 (인스타그램 고유 컬러 버튼)
+      if (item.link) {
+        linkHtml = `<a href="${item.link}" target="_blank" class="link-btn" style="background:#e1306c">인스타 원문 ↗</a>`;
+      }
+    } else {
+      // 커뮤니티 썰은 가짜 링크가 많으므로 안전하게 검색으로 연결 (회색 버튼)
+      const searchQuery = encodeURIComponent(item.title || item.keyword);
+      const searchUrl = `https://www.google.com/search?q=${searchQuery}`;
+      linkHtml = `<a href="${searchUrl}" target="_blank" class="link-btn" style="background:#888">🔍 썰 검색</a>`;
     }
 
     return `
@@ -131,7 +135,7 @@ function renderTable() {
         <td>
           <div style="font-weight:800;font-size:14px;color:#111">
             ${item.title}
-            <a href="${searchUrl}" target="_blank" class="link-btn">🔍 원문 검색</a>
+            ${linkHtml}
           </div>
           <div class="comment-box">
             ${(item.best_comments || []).map(c => `
