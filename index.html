@@ -14,6 +14,113 @@
   </title>
 
   <style>
+.make-toon-btn {
+  margin-top: 10px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  background: #111;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.make-toon-btn:hover {
+  opacity: 0.85;
+}
+
+.toon-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.toon-modal.show {
+  display: flex;
+}
+
+.toon-modal-box {
+  width: min(760px, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.toon-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.toon-modal-title {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.toon-close {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.toon-concept {
+  padding: 12px;
+  background: #f7f6f3;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.toon-panel {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.toon-panel-num {
+  font-size: 11px;
+  font-weight: 800;
+  color: #777;
+  margin-bottom: 4px;
+}
+
+.toon-panel-role {
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 5px;
+}
+
+.toon-panel-text {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.toon-extra {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #eee;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.toon-loading {
+  padding: 30px;
+  text-align: center;
+  color: #777;
+}
+    
     * {
       box-sizing: border-box;
     }
@@ -583,7 +690,6 @@ async function loadData() {
 
     renderTable();
 
-
     status.textContent =
       `총 ${archiveData.length}개의 실제 검색 데이터를 불러왔습니다.`;
 
@@ -996,7 +1102,7 @@ if (
               }
 
 
-              <div class="scores">
+               <div class="scores">
 
                 <span
                   class="score-badge"
@@ -1006,6 +1112,13 @@ if (
                 </span>
 
               </div>
+
+              <button
+                class="make-toon-btn"
+                onclick="makeToon(${index})"
+              >
+                ✏️ 8컷 구성 만들기
+              </button>
 
 
             </td>
@@ -1395,14 +1508,246 @@ function renderMemos() {
 // 시작
 // =========================================================
 
+  
 
 loadData();
 
+async function makeToon(index) {
+
+  let filtered =
+    [...archiveData];
+
+  if (currentFilter !== "all") {
+    filtered =
+      filtered.filter(
+        item =>
+          item.category === currentFilter
+      );
+  }
+
+  if (currentDate !== "all") {
+    filtered =
+      filtered.filter(
+        item =>
+          formatDateOnly(
+            item.collected_at
+          ) === currentDate
+      );
+  }
+
+  filtered.sort(
+    (a, b) =>
+      (b.toon_fit_score || 0) -
+      (a.toon_fit_score || 0)
+  );
+
+  const item =
+    filtered[index];
+
+  if (!item) {
+    alert("소재를 찾지 못했습니다.");
+    return;
+  }
+
+  const modal =
+    document.getElementById(
+      "toonModal"
+    );
+
+  const title =
+    document.getElementById(
+      "toonModalTitle"
+    );
+
+  const content =
+    document.getElementById(
+      "toonModalContent"
+    );
+
+  modal.classList.add(
+    "show"
+  );
+
+  title.textContent =
+    "8컷 인스타툰 구성 생성 중";
+
+  content.innerHTML = `
+    <div class="toon-loading">
+      Gemini가 8컷 구성을 만들고 있습니다...
+    </div>
+  `;
+
+  try {
+
+    const response =
+      await fetch(
+        `${SUPABASE_URL}/functions/v1/swift-api`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            "apikey":
+              SUPABASE_PUBLISHABLE_KEY,
+
+            "Authorization":
+              `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+          },
+
+          body: JSON.stringify({
+            title:
+              item.source_title || "",
+
+            summary:
+              item.ai_summary || "",
+
+            hook:
+              item.hook || "",
+
+            story_angle:
+              item.story_angle || ""
+          })
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        result.error ||
+        "8컷 생성에 실패했습니다."
+      );
+    }
+
+    title.textContent =
+      result.toon_title ||
+      "8컷 인스타툰 구성";
+
+    const panels =
+      Array.isArray(
+        result.panels
+      )
+        ? result.panels
+        : [];
+
+    content.innerHTML = `
+
+      <div class="toon-concept">
+        <strong>콘셉트</strong><br>
+        ${escapeHtml(
+          result.concept || ""
+        )}
+      </div>
+
+      ${panels.map(panel => `
+
+        <div class="toon-panel">
+
+          <div class="toon-panel-num">
+            ${panel.panel}컷
+          </div>
+
+          <div class="toon-panel-role">
+            ${escapeHtml(
+              panel.role || ""
+            )}
+          </div>
+
+          <div class="toon-panel-text">
+            ${escapeHtml(
+              panel.text || ""
+            )}
+          </div>
+
+        </div>
+
+      `).join("")}
+
+      <div class="toon-extra">
+
+        <strong>캡션 초안</strong>
+        <br>
+        ${escapeHtml(
+          result.caption || ""
+        )}
+
+        <br><br>
+
+        <strong>댓글 유도 문장</strong>
+        <br>
+        ${escapeHtml(
+          result.cta || ""
+        )}
+
+      </div>
+
+    `;
+
+  } catch (error) {
+
+    title.textContent =
+      "오류";
+
+    content.innerHTML = `
+      <div class="error-box">
+        ${escapeHtml(
+          error.message
+        )}
+      </div>
+    `;
+
+  }
+
+}
+
+
+function closeToonModal() {
+
+  document
+    .getElementById(
+      "toonModal"
+    )
+    .classList.remove(
+      "show"
+    );
+
+}
+  
 renderMemos();
 
 
 </script>
+<div
+  id="toonModal"
+  class="toon-modal"
+>
+  <div class="toon-modal-box">
 
+    <div class="toon-modal-header">
+
+      <div
+        id="toonModalTitle"
+        class="toon-modal-title"
+      >
+        8컷 인스타툰 구성
+      </div>
+
+      <button
+        class="toon-close"
+        onclick="closeToonModal()"
+      >
+        ✕
+      </button>
+
+    </div>
+
+    <div id="toonModalContent"></div>
+
+  </div>
+</div>
 
 </body>
 
