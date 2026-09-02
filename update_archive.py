@@ -2,36 +2,28 @@ import os
 import json
 import datetime
 import urllib.request
-import urllib.parse
 import urllib.error
 import sys
 
 
 # =========================================================
-# 1. GitHub Secrets에서 비밀값 가져오기
+# 1. GitHub Secrets
 # =========================================================
 
+SERPER_API_KEY = os.environ.get("SERPER_API_KEY")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-
-GOOGLE_SEARCH_API_KEY = (
-    os.environ.get("GOOGLE_SEARCH_API_KEY")
-    or os.environ.get("GOOGLE_SERCH_API")
-)
-
-SEARCH_ENGINE_ID = os.environ.get("SEARCH_ENGINE_ID")
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SECRET_KEY = os.environ.get("SUPABASE_SECRET_KEY")
 
 
 # =========================================================
-# 2. 필요한 키가 다 있는지 확인
+# 2. 필수 값 체크
 # =========================================================
 
 required_values = {
+    "SERPER_API_KEY": SERPER_API_KEY,
     "GEMINI_API_KEY": GEMINI_API_KEY,
-    "GOOGLE_SEARCH_API_KEY": GOOGLE_SEARCH_API_KEY,
-    "SEARCH_ENGINE_ID": SEARCH_ENGINE_ID,
     "SUPABASE_URL": SUPABASE_URL,
     "SUPABASE_SECRET_KEY": SUPABASE_SECRET_KEY,
 }
@@ -49,7 +41,7 @@ if missing:
 
 
 # =========================================================
-# 3. 검색할 키워드
+# 3. 검색 키워드
 # =========================================================
 
 QUERIES = [
@@ -62,27 +54,33 @@ QUERIES = [
 
 
 # =========================================================
-# 4. Google 검색
+# 4. Serper 검색
 # =========================================================
 
-def google_search(query):
+def serper_search(query):
 
-    params = urllib.parse.urlencode({
+    url = "https://google.serper.dev/search"
+
+    body = {
         "q": query,
-        "cx": SEARCH_ENGINE_ID,
-        "key": GOOGLE_SEARCH_API_KEY,
-        "dateRestrict": "d7",
+        "gl": "kr",
+        "hl": "ko",
         "num": 10,
-    })
+    }
 
-    search_url = (
-        "https://customsearch.googleapis.com/customsearch/v1?"
-        + params
+    payload = json.dumps(body).encode("utf-8")
+
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={
+            "X-API-KEY": SERPER_API_KEY,
+            "Content-Type": "application/json",
+        },
+        method="POST",
     )
 
     try:
-
-        req = urllib.request.Request(search_url)
 
         with urllib.request.urlopen(
             req,
@@ -95,10 +93,11 @@ def google_search(query):
 
         items = []
 
-        for item in result.get("items", []):
+        for item in result.get("organic", []):
 
             title = item.get("title", "").strip()
             link = item.get("link", "").strip()
+            snippet = item.get("snippet", "").strip()
 
             if not title or not link:
                 continue
@@ -106,22 +105,45 @@ def google_search(query):
             items.append({
                 "source_title": title,
                 "source_url": link,
+                "source_snippet": snippet,
                 "search_query": query,
             })
 
         return items
 
+    except urllib.error.HTTPError as e:
+
+        body = (
+            e.read()
+            .decode(
+                "utf-8",
+                errors="ignore"
+            )
+        )
+
+        print(
+            f"❌ Serper 검색 실패 [{query}]"
+        )
+
+        print(
+            f"HTTP {e.code}"
+        )
+
+        print(body)
+
+        return []
+
     except Exception as e:
 
         print(
-            f"⚠️ Google 검색 실패 [{query}] : {e}"
+            f"❌ Serper 검색 실패 [{query}] : {e}"
         )
 
         return []
 
 
 # =========================================================
-# 5. Gemini에게 '분석만' 시키기
+# 5. Gemini 분석
 # =========================================================
 
 def analyze_with_gemini(item):
@@ -134,7 +156,7 @@ def analyze_with_gemini(item):
     )
 
     prompt = f"""
-아래 데이터는 Google 검색 API를 통해 실제로 수집한 데이터다.
+아래는 검색 API를 통해 실제로 수집한 데이터다.
 
 [실제 원본 데이터]
 
@@ -144,31 +166,35 @@ def analyze_with_gemini(item):
 URL:
 {item["source_url"]}
 
+검색 결과 설명:
+{item["source_snippet"]}
+
 검색 키워드:
 {item["search_query"]}
 
 
-이 자료가 인스타툰 소재로 활용하기 좋은지 분석해줘.
+이 자료가 인스타툰 소재로 활용하기 좋은지 분석해라.
 
-반드시 다음 규칙을 지켜라.
+반드시 아래 규칙을 지켜라.
 
 1. 실제 데이터에 없는 좋아요 수를 만들지 마라.
 2. 실제 데이터에 없는 댓글 수를 만들지 마라.
 3. 실제 댓글을 본 것처럼 댓글을 만들지 마라.
 4. 조회수를 상상해서 만들지 마라.
-5. 모든 평가는 반드시 "AI 분석"일 뿐이다.
-6. 제목이나 URL을 새로 만들어내지 마라.
-7. toon_fit_score는 1~100 사이의 정수다.
+5. 사실처럼 보이는 숫자를 임의로 만들지 마라.
+6. 제목과 URL은 수정하거나 새로 만들지 마라.
+7. 모든 평가는 AI 분석이라는 전제로 작성한다.
+8. toon_fit_score는 인스타툰 소재 적합도를 뜻하며 1~100 사이 정수다.
 
 아래 JSON 형식으로만 응답해라.
 
 {{
   "category": "직장 또는 연애 또는 일상 또는 기타",
   "keyword": "핵심 키워드 하나",
-  "ai_summary": "왜 사람들이 공감할 수 있는 인스타툰 소재인지 2~3문장으로 설명",
+  "ai_summary": "왜 사람들이 공감할 수 있는 인스타툰 소재인지 2~3문장",
   "toon_fit_score": 85,
-  "hook": "인스타툰 첫 장에서 사용할 수 있는 후킹 문장",
-  "story_angle": "이 소재를 어떤 이야기 흐름으로 만들면 좋을지 간단하게 설명"
+  "hook": "인스타툰 첫 장에 사용할 수 있는 후킹 문장",
+  "story_angle": "이 소재를 어떤 이야기 흐름으로 만들면 좋을지 설명"
 }}
 """
 
@@ -218,6 +244,21 @@ URL:
 
         analysis = json.loads(raw_text)
 
+        score = analysis.get(
+            "toon_fit_score",
+            50
+        )
+
+        try:
+            score = int(score)
+        except:
+            score = 50
+
+        score = max(
+            1,
+            min(100, score)
+        )
+
         return {
             "category": analysis.get(
                 "category",
@@ -234,10 +275,7 @@ URL:
                 ""
             ),
 
-            "toon_fit_score": analysis.get(
-                "toon_fit_score",
-                50
-            ),
+            "toon_fit_score": score,
 
             "hook": analysis.get(
                 "hook",
@@ -250,17 +288,35 @@ URL:
             ),
         }
 
+    except urllib.error.HTTPError as e:
+
+        body = (
+            e.read()
+            .decode(
+                "utf-8",
+                errors="ignore"
+            )
+        )
+
+        print(
+            f"❌ Gemini 분석 실패 HTTP {e.code}"
+        )
+
+        print(body)
+
+        return None
+
     except Exception as e:
 
         print(
-            f"⚠️ Gemini 분석 실패: {e}"
+            f"❌ Gemini 분석 실패: {e}"
         )
 
         return None
 
 
 # =========================================================
-# 6. Supabase에 저장
+# 6. Supabase 저장
 # =========================================================
 
 def save_to_supabase(row):
@@ -280,9 +336,13 @@ def save_to_supabase(row):
         data=payload,
         headers={
             "apikey": SUPABASE_SECRET_KEY,
+
             "Authorization":
                 f"Bearer {SUPABASE_SECRET_KEY}",
-            "Content-Type": "application/json",
+
+            "Content-Type":
+                "application/json",
+
             "Prefer":
                 "resolution=merge-duplicates",
         },
@@ -311,8 +371,7 @@ def save_to_supabase(row):
         )
 
         print(
-            f"❌ Supabase 저장 실패: "
-            f"{e.code}"
+            f"❌ Supabase 저장 실패 HTTP {e.code}"
         )
 
         print(error_body)
@@ -343,18 +402,23 @@ def main():
     all_items = {}
 
     # -----------------------------------------------------
-    # Google 검색
+    # Serper 검색
     # -----------------------------------------------------
 
-    print("🔍 1단계: 실제 검색 데이터 수집")
+    print(
+        "🔍 1단계: Serper 검색 데이터 수집"
+    )
 
     for query in QUERIES:
 
+        print("")
         print(
             f"검색 중: {query}"
         )
 
-        results = google_search(query)
+        results = serper_search(
+            query
+        )
 
         print(
             f"→ {len(results)}개 발견"
@@ -362,7 +426,7 @@ def main():
 
         for item in results:
 
-            # URL을 기준으로 중복 제거
+            # URL 기준 중복 제거
             all_items[
                 item["source_url"]
             ] = item
@@ -372,10 +436,10 @@ def main():
         f"✅ 중복 제거 후 "
         f"{len(all_items)}개"
     )
-    print("")
 
     if not all_items:
 
+        print("")
         print(
             "❌ 검색 결과가 없습니다."
         )
@@ -383,16 +447,18 @@ def main():
         sys.exit(1)
 
     # -----------------------------------------------------
-    # Gemini 분석 + Supabase 저장
+    # Gemini 분석 + DB 저장
     # -----------------------------------------------------
 
+    print("")
     print(
-        "🤖 2단계: "
-        "Gemini 소재 분석 시작"
+        "🤖 2단계: Gemini 분석 시작"
     )
 
     success_count = 0
     fail_count = 0
+
+    total = len(all_items)
 
     for number, item in enumerate(
         all_items.values(),
@@ -401,7 +467,7 @@ def main():
 
         print("")
         print(
-            f"[{number}/{len(all_items)}]"
+            f"[{number}/{total}]"
         )
 
         print(
@@ -426,7 +492,7 @@ def main():
 
         row = {
 
-            # 실제 수집 데이터
+            # 실제 검색 데이터
             "source_url":
                 item["source_url"],
 
@@ -434,7 +500,7 @@ def main():
                 item["source_title"],
 
             "source_type":
-                "google_custom_search",
+                "serper_google_search",
 
             "search_query":
                 item["search_query"],
@@ -460,7 +526,7 @@ def main():
                 analysis["story_angle"],
 
             "ai_model":
-                "gemini-3.7-flash",
+                model_name(),
 
             "analyzed_at":
                 now,
@@ -488,7 +554,7 @@ def main():
 
     print("")
     print("==============================")
-    print("🎉 자동 수집 완료")
+    print("🎉 자동 수집 종료")
     print("==============================")
 
     print(
@@ -500,6 +566,11 @@ def main():
     )
 
     print("")
+
+
+def model_name():
+
+    return "gemini-3.7-flash"
 
 
 if __name__ == "__main__":
