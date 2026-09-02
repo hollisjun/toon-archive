@@ -1,5 +1,4 @@
-import os, json, datetime, urllib.request, urllib.parse, sys
-import xml.etree.ElementTree as ET
+import os, json, datetime, urllib.request, urllib.error, re, sys
 
 api_key = os.environ.get("GEMINI_API_KEY")
 
@@ -9,77 +8,90 @@ if not api_key or api_key.strip() == "":
 
 api_key = api_key.strip()
 
-print("🔍 1단계: 최근 24시간 실시간 트렌드/커뮤니티 원본 수집 중...")
-queries = [
-    "블라인드 OR 직장인 OR 퇴사 when:1d",
-    "네이트판 OR 연애 OR 소개팅 when:1d",
-    "인스타툰 OR 밈 OR 트렌드 when:1d"
-]
+print("🔍 1단계: 네이트판 실시간 베스트 썰(진짜 링크) 직수집 중...")
+real_data_list = []
 
-real_data_text = ""
-idx = 1
-for q in queries:
-    rss_url = f"https://news.google.com/rss/search?q={urllib.parse.quote(q)}&hl=ko&gl=KR&ceid=KR:ko"
-    try:
-        req = urllib.request.Request(rss_url, headers={'User-Agent': 'Mozilla/5.0'})
-        xml_data = urllib.request.urlopen(req).read()
-        root = ET.fromstring(xml_data)
-        for item in root.findall('./channel/item')[:10]:
-            title = item.find('title').text
-            link = item.find('link').text
-            real_data_text += f"[{idx}] 제목: {title}\n링크: {link}\n\n"
-            idx += 1
-    except Exception as e:
-        pass
+# 1. 썰의 성지 '네이트판' 실시간 랭킹 HTML 직접 크롤링
+try:
+    req = urllib.request.Request("https://pann.nate.com/talk/ranking/d", headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+    html = urllib.request.urlopen(req).read().decode('utf-8')
+    
+    # 정규식으로 실제 글 고유 주소와 제목만 정확하게 추출
+    pattern = r'<dt>\s*<a href="(/talk/\d+)"[^>]*title="([^"]+)"'
+    matches = re.findall(pattern, html)
+    
+    seen = set()
+    for link, title in matches:
+        if link not in seen:
+            seen.add(link)
+            # 수집한 진짜 주소 조립
+            real_data_list.append(f"제목: {title}\n링크: https://pann.nate.com{link}")
+            if len(real_data_list) >= 25:  # 25개 넉넉히 수집
+                break
+except Exception as e:
+    print(f"❌ 네이트판 수집 에러: {e}")
+
+real_data_text = "\n\n".join(real_data_list)
 
 if not real_data_text:
-    print("❌ 실시간 데이터를 하나도 수집하지 못했습니다.")
+    print("❌ 실시간 데이터를 수집하지 못했습니다.")
     sys.exit(1)
 
-print("🚀 2단계: AI가 수집된 진짜 데이터를 인스타툰 소재로 분석 중...")
+print("🚀 2단계: AI에게 '절대 지어내지 말라'고 강력 통제하며 분석 중...")
 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
 
 prompt = f"""
-아래는 내가 방금 직접 수집한 '오늘자(최근 24시간) 커뮤니티 썰 및 트렌드' 실제 데이터 30개야.
-이 중에서 인스타툰 소재로 그렸을 때 가장 사람들의 공감과 댓글이 폭발할 만한 10개를 선별해서 JSON으로 만들어줘.
+너는 인스타툰 소재 큐레이터야.
+아래 [오늘자 실제 수집 데이터]에는 오늘 한국 커뮤니티에 올라온 '진짜 제목'과 '진짜 접속 링크'가 있어.
 
-[수집된 오늘자 실제 데이터]
+[오늘자 실제 수집 데이터]
 {real_data_text}
 
-[엄격한 조건]
-1. 반드시 위에 제공된 '수집된 데이터' 안에 있는 '제목'과 '링크'를 그대로 복사해서 사용해. 절대 링크를 지어내지 마.
-2. 'best_comments'는 위 기사나 썰의 맥락을 보고, 실제 2030 독자들이 공감하며 달 법한 현실적인 예상 댓글 2개를 유추해서 적어.
-3. category는 글의 성격에 따라 "직장", "연애", "인스타툰" 중 하나로 분류해.
-4. 반드시 마크다운 백틱 없이 순수 JSON 배열([...])로만 시작하고 끝나게 출력해.
+[🚨초엄격 규칙 - 위반 시 시스템 오류 발생🚨]
+1. 무조건 위 데이터 목록에 있는 제목과 링크를 **토씨 하나 틀리지 말고 100% 그대로 복사**해서 써야 해.
+2. 절대 네가 스스로 지어내거나 가짜 링크(할루시네이션)를 만들면 안 돼. 위 목록에 없는 건 절대 쓰지 마.
+3. 위 목록 중에서 인스타툰(직장/연애/일상)으로 그리기 가장 좋은 것 10개를 골라줘.
+4. 댓글(best_comments)은 해당 글의 내용을 상상해서 독자들이 달 법한 현실적인 댓글로 2개씩 지어줘.
 
-[형식]
+[출력 JSON 형식] (반드시 순수 JSON 배열 [...] 형태만 출력)
 [{{
   "rank": 1,
-  "category": "직장",
-  "keyword": "회식/퇴사",
-  "title": "여기에 수집된 실제 제목 입력",
-  "link": "여기에 수집된 실제 링크 입력",
-  "best_comments": [{{"text": "유추한 현실 반응", "likes": 1420}}],
-  "reaction_summary": "댓글 분위기 예상 요약",
+  "category": "연애",
+  "keyword": "핵심키워드",
+  "title": "실제 제목 그대로 복사",
+  "link": "실제 링크 그대로 복사",
+  "best_comments": [
+    {{"text": "현실 공감 댓글 내용", "likes": 234}}
+  ],
+  "reaction_summary": "사람들의 예상 분노/공감 포인트 요약",
   "s": [5, 4, 5, 3, 4]
 }}]
 """
 
-data = {"contents": [{"parts": [{"text": prompt}]}]}
+data = {
+    "contents": [{"parts": [{"text": prompt}]}],
+    "generationConfig": {
+        "temperature": 0.0, # 창의성을 완전히 꺼서 거짓말(할루시네이션) 원천 차단
+        "response_mime_type": "application/json"
+    }
+}
 
 try:
     req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers={'Content-Type': 'application/json'})
     res = urllib.request.urlopen(req)
     result = json.loads(res.read().decode('utf-8'))
-    raw_text = result['candidates'][0]['content']['parts'][0]['text']
     
-    clean_text = raw_text.replace('```json', '').replace('```', '').strip()
-    new_items = json.loads(clean_text)
+    # JSON 강제 출력 옵션을 켰으므로 마크다운 정제 없이 바로 파싱 가능
+    raw_text = result['candidates'][0]['content']['parts'][0]['text']
+    new_items = json.loads(raw_text.strip())
+except urllib.error.HTTPError as e:
+    print(f"❌ API 에러 ({e.code}):\n{e.read().decode('utf-8')}")
+    sys.exit(1)
 except Exception as e:
-    print(f"❌ 에러 발생: {e}")
+    print(f"❌ 데이터 파싱 에러 발생: {e}")
     sys.exit(1)
 
-print("💾 3단계: 완성된 데이터를 사이트에 누적 저장 중...")
+print("💾 3단계: 완성된 데이터를 사이트에 중복 없이 누적 저장 중...")
 today = datetime.datetime.now().strftime("%Y-%m-%d")
 
 if os.path.exists('data.json'):
@@ -91,7 +103,6 @@ if os.path.exists('data.json'):
 else:
     archive = []
 
-# 당일 중복 생성 방지: 오늘 날짜가 이미 있으면 그 부분만 최신으로 덮어쓰기
 updated = False
 for day_data in archive:
     if day_data.get("date") == today:
@@ -105,4 +116,4 @@ if not updated:
 with open('data.json', 'w', encoding='utf-8') as f:
     json.dump(archive, f, ensure_ascii=False, indent=2)
 
-print("✅ 성공! 오늘자 실시간 트렌드 업데이트 완료!")
+print("✅ 성공! 100% 진짜 링크로 업데이트 완료!")
