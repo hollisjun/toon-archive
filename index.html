@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TOON ARCHIVE — 일간 트렌드 아카이브</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f7f6f3;color:#222;font-family:-apple-system,Pretendard,sans-serif}
+.app{max-width:1400px;margin:auto;padding:32px 24px}
+header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;border-bottom:2px solid #222;padding-bottom:16px}
+.logo{font-size:24px;font-weight:900;letter-spacing:-1px}
+.grid{display:grid;grid-template-columns:2.2fr 1fr;gap:24px}
+.panel{background:#fff;border:1px solid #e3e0d8;border-radius:16px;padding:24px}
+.controls{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+select,input,button{border:1px solid #ddd;border-radius:8px;padding:8px 12px;font-size:13px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{padding:12px 10px;text-align:left;border-bottom:1px solid #eee;font-size:13px;vertical-align:middle}
+th{background:#f9f8f5;font-weight:700;color:#555}
+.tag{display:inline-block;padding:3px 7px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-직장{background:#e8f0fe;color:#1a73e8}
+.tag-연애{background:#fce8e6;color:#d93025}
+.scores{display:flex;gap:4px;font-size:11px;color:#666}
+.score-badge{background:#eee;padding:2px 5px;border-radius:3px}
+.reaction{color:#666;font-size:12px;margin-top:4px}
+.memo-area{display:flex;gap:8px;margin-bottom:12px}
+.memo-area input{flex:1}
+.memo-item{padding:10px;background:#faf9f6;border:1px solid #eee;border-radius:8px;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div>
+    <div class="logo">TOON TREND ARCHIVE</div>
+    <div style="font-size:12px;color:#777;margin-top:4px">인기 키워드 · 후킹 제목 · 대중 반응 아카이빙</div>
+  </div>
+  <select id="dateSelect" onchange="switchDate(this.value)"></select>
+</header>
+
+<div class="grid">
+  <section class="panel">
+    <div class="controls">
+      <button onclick="filterCat('all')">전체</button>
+      <button onclick="filterCat('직장')">직장</button>
+      <button onclick="filterCat('연애')">연애</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:60px">분류</th>
+            <th style="width:110px">키워드</th>
+            <th>바이럴 제목 (후킹 카피) & 독자 반응</th>
+            <th style="width:160px">평가 지표 (5점 만점)</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <h3 style="margin-top:0;font-size:16px">내 소재 메모장</h3>
+    <div class="memo-area">
+      <input id="memoInput" placeholder="새로 떠오른 썰/아이디어 한 줄">
+      <button onclick="addMemo()">저장</button>
+    </div>
+    <div id="memoList"></div>
+  </aside>
+</div>
+</div>
+
+<script>
+// data.json 파일을 불러오거나, 로컬 테스트용 기본 데이터
+let archiveData = [
+  {
+    date: "2026-09-02",
+    items: [
+      { category: "직장", keyword: "점심값 눈치", title: "선배가 밥 사준다더니 만원 이하로 고르라 함", reaction: "댓글 400+ / '사주고 욕먹기 1등' 공감 폭발", s: [5,4,5,3,4] },
+      { category: "연애", keyword: "안읽씹 vs 읽씹", title: "안읽씹 4시간 vs 읽씹 30분, 뭐가 더 피 말림?", reaction: "댓글 500+ / 인스타 스토리 보면서 답장 안 하는 심리", s: [5,5,5,2,3] },
+      { category: "직장", keyword: "칼퇴 눈치", title: "6시 정각에 짐 싸면 쳐다보는 팀장님 심리", reaction: "공감 폭발 / '내 근무 끝났는데 왜 죄인 됨?'", s: [4,5,5,3,4] },
+      { category: "연애", keyword: "데이트 비용", title: "만난 지 1년 넘었는데 칼같이 5:5 정산하는 애인", reaction: "갑론을박 / 10원 단위 뿜빠이 정떨어짐", s: [4,5,5,2,3] }
+    ]
+  }
+];
+
+let currentDate = archiveData[0].date;
+let currentFilter = 'all';
+
+function init() {
+  const sel = document.getElementById('dateSelect');
+  sel.innerHTML = archiveData.map(d => `<option value="${d.date}">${d.date} 아카이브</option>`).join('');
+  renderTable();
+  renderMemos();
+}
+
+function renderTable() {
+  const day = archiveData.find(d => d.date === currentDate);
+  if (!day) return;
+  const filtered = currentFilter === 'all' ? day.items : day.items.filter(i => i.category === currentFilter);
+  
+  document.getElementById('tableBody').innerHTML = filtered.map(item => `
+    <tr>
+      <td><span class="tag tag-${item.category}">${item.category}</span></td>
+      <td><b>${item.keyword}</b></td>
+      <td>
+        <div style="font-weight:700;font-size:14px">${item.title}</div>
+        <div class="reaction">💬 ${item.reaction}</div>
+      </td>
+      <td>
+        <div class="scores">
+          <span class="score-badge">급상승 ${item.s[0]}</span>
+          <span class="score-badge">수요 ${item.s[1]}</span>
+          <span class="score-badge">적합 ${item.s[2]}</span>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function switchDate(d) { currentDate = d; renderTable(); }
+function filterCat(c) { currentFilter = c; renderTable(); }
+
+// 메모 기능 (LocalStorage)
+let memos = JSON.parse(localStorage.getItem('myToonMemos') || '[]');
+function addMemo() {
+  const val = document.getElementById('memoInput').value.trim();
+  if(!val) return;
+  memos.unshift(val);
+  localStorage.setItem('myToonMemos', JSON.stringify(memos));
+  document.getElementById('memoInput').value = '';
+  renderMemos();
+}
+function delMemo(idx) {
+  memos.splice(idx, 1);
+  localStorage.setItem('myToonMemos', JSON.stringify(memos));
+  renderMemos();
+}
+function renderMemos() {
+  document.getElementById('memoList').innerHTML = memos.map((m, idx) => `
+    <div class="memo-item"><span>${m}</span><button onclick="delMemo(${idx})" style="border:none;background:none;color:#999;cursor:pointer">✕</button></div>
+  `).join('');
+}
+
+init();
+</script>
+</body>
+</html>
