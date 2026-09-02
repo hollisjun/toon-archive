@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import datetime
 import urllib.request
 import urllib.error
@@ -18,7 +19,33 @@ SUPABASE_SECRET_KEY = os.environ.get("SUPABASE_SECRET_KEY")
 
 
 # =========================================================
-# 2. 필수 값 체크
+# 2. 기본 설정
+# =========================================================
+
+GEMINI_MODEL = os.environ.get(
+    "GEMINI_MODEL",
+    "gemini-3.7-flash"
+)
+
+# 하루 자동 수집에서 Gemini를 최대 몇 번 호출할지
+MAX_GEMINI_REQUESTS = int(
+    os.environ.get(
+        "MAX_GEMINI_REQUESTS",
+        "10"
+    )
+)
+
+# 이 점수 이상만 DB에 저장
+MIN_TOON_FIT_SCORE = int(
+    os.environ.get(
+        "MIN_TOON_FIT_SCORE",
+        "65"
+    )
+)
+
+
+# =========================================================
+# 3. 필수 Secret 확인
 # =========================================================
 
 required_values = {
@@ -41,7 +68,7 @@ if missing:
 
 
 # =========================================================
-# 3. 검색 키워드
+# 4. 검색 키워드
 # =========================================================
 
 QUERIES = [
@@ -70,7 +97,15 @@ QUERIES = [
 
 
 # =========================================================
-# 4. Serper 검색
+# 5. Gemini 무료 할당량 초과용 예외
+# =========================================================
+
+class GeminiQuotaError(Exception):
+    pass
+
+
+# =========================================================
+# 6. Serper 검색
 # =========================================================
 
 def serper_search(query):
@@ -84,14 +119,17 @@ def serper_search(query):
         "num": 10,
     }
 
-    payload = json.dumps(body).encode("utf-8")
-
     req = urllib.request.Request(
         url,
-        data=payload,
+        data=json.dumps(
+            body
+        ).encode("utf-8"),
         headers={
-            "X-API-KEY": SERPER_API_KEY,
-            "Content-Type": "application/json",
+            "X-API-KEY":
+                SERPER_API_KEY,
+
+            "Content-Type":
+                "application/json",
         },
         method="POST",
     )
@@ -104,32 +142,67 @@ def serper_search(query):
         ) as response:
 
             result = json.loads(
-                response.read().decode("utf-8")
+                response
+                .read()
+                .decode("utf-8")
             )
 
         items = []
 
-        for item in result.get("organic", []):
+        for item in result.get(
+            "organic",
+            []
+        ):
 
-            title = item.get("title", "").strip()
-            link = item.get("link", "").strip()
-            snippet = item.get("snippet", "").strip()
+            title = (
+                item
+                .get(
+                    "title",
+                    ""
+                )
+                .strip()
+            )
+
+            link = (
+                item
+                .get(
+                    "link",
+                    ""
+                )
+                .strip()
+            )
+
+            snippet = (
+                item
+                .get(
+                    "snippet",
+                    ""
+                )
+                .strip()
+            )
 
             if not title or not link:
                 continue
 
             items.append({
-                "source_title": title,
-                "source_url": link,
-                "source_snippet": snippet,
-                "search_query": query,
+                "source_title":
+                    title,
+
+                "source_url":
+                    link,
+
+                "source_snippet":
+                    snippet,
+
+                "search_query":
+                    query,
             })
 
         return items
 
     except urllib.error.HTTPError as e:
 
-        body = (
+        error_body = (
             e.read()
             .decode(
                 "utf-8",
@@ -138,37 +211,96 @@ def serper_search(query):
         )
 
         print(
-            f"❌ Serper 검색 실패 [{query}]"
+            f"❌ Serper 검색 실패 "
+            f"[{query}] HTTP {e.code}"
         )
 
-        print(
-            f"HTTP {e.code}"
-        )
-
-        print(body)
+        print(error_body)
 
         return []
 
     except Exception as e:
 
         print(
-            f"❌ Serper 검색 실패 [{query}] : {e}"
+            f"❌ Serper 검색 실패 "
+            f"[{query}] : {e}"
         )
 
         return []
 
 
 # =========================================================
-# 5. Gemini 분석
+# 7. Supabase에 이미 존재하는 URL 가져오기
+# =========================================================
+
+def get_existing_urls():
+
+    endpoint = (
+        f"{SUPABASE_URL}"
+        "/rest/v1/toon_archive"
+        "?select=source_url"
+        "&limit=1000"
+    )
+
+    req = urllib.request.Request(
+        endpoint,
+        headers={
+            "apikey":
+                SUPABASE_SECRET_KEY,
+
+            "Authorization":
+                f"Bearer "
+                f"{SUPABASE_SECRET_KEY}",
+        },
+        method="GET",
+    )
+
+    try:
+
+        with urllib.request.urlopen(
+            req,
+            timeout=30
+        ) as response:
+
+            rows = json.loads(
+                response
+                .read()
+                .decode("utf-8")
+            )
+
+        return {
+            row.get(
+                "source_url"
+            )
+            for row in rows
+            if row.get(
+                "source_url"
+            )
+        }
+
+    except Exception as e:
+
+        print(
+            f"⚠️ 기존 URL 조회 실패: {e}"
+        )
+
+        print(
+            "중복 확인 없이 계속 진행합니다."
+        )
+
+        return set()
+
+
+# =========================================================
+# 8. Gemini 분석
 # =========================================================
 
 def analyze_with_gemini(item):
 
-    model = "gemini-3.7-flash"
-
     url = (
-        "https://generativelanguage.googleapis.com/v1beta/"
-        f"models/{model}:generateContent"
+        "https://generativelanguage.googleapis.com/"
+        "v1beta/"
+        f"models/{GEMINI_MODEL}:generateContent"
     )
 
     prompt = f"""
@@ -200,7 +332,7 @@ URL:
 5. 사실처럼 보이는 숫자를 임의로 만들지 마라.
 6. 제목과 URL은 수정하거나 새로 만들지 마라.
 7. 모든 평가는 AI 분석이라는 전제로 작성한다.
-8. toon_fit_score는 인스타툰 소재 적합도를 뜻하며 1~100 사이 정수다.
+8. toon_fit_score는 1~100 사이 정수다.
 
 아래 JSON 형식으로만 응답해라.
 
@@ -215,146 +347,241 @@ URL:
 """
 
     body = {
+
         "contents": [
             {
                 "parts": [
                     {
-                        "text": prompt
+                        "text":
+                            prompt
                     }
                 ]
             }
         ],
+
         "generationConfig": {
-            "temperature": 0.2,
-            "responseMimeType": "application/json",
+
+            "responseMimeType":
+                "application/json"
+
         }
     }
 
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(body).encode("utf-8"),
-        headers={
-            "Content-Type": "application/json",
-            "x-goog-api-key": GEMINI_API_KEY,
-        },
-        method="POST",
-    )
 
-    try:
+    # 503일 때 최대 3번 재시도
+    for attempt in range(
+        1,
+        4
+    ):
 
-        with urllib.request.urlopen(
-            req,
-            timeout=60
-        ) as response:
+        req = urllib.request.Request(
 
-            result = json.loads(
-                response.read().decode("utf-8")
-            )
+            url,
 
-        raw_text = (
-            result["candidates"][0]
-            ["content"]
-            ["parts"][0]
-            ["text"]
-        )
+            data=json.dumps(
+                body
+            ).encode(
+                "utf-8"
+            ),
 
-        analysis = json.loads(raw_text)
+            headers={
+                "Content-Type":
+                    "application/json",
 
-        score = analysis.get(
-            "toon_fit_score",
-            50
+                "x-goog-api-key":
+                    GEMINI_API_KEY,
+            },
+
+            method="POST",
         )
 
         try:
-            score = int(score)
-        except:
-            score = 50
 
-        score = max(
-            1,
-            min(100, score)
-        )
+            with urllib.request.urlopen(
+                req,
+                timeout=60
+            ) as response:
 
-        return {
-            "category": analysis.get(
-                "category",
-                "기타"
-            ),
+                result = json.loads(
+                    response
+                    .read()
+                    .decode(
+                        "utf-8"
+                    )
+                )
 
-            "keyword": analysis.get(
-                "keyword",
-                ""
-            ),
-
-            "ai_summary": analysis.get(
-                "ai_summary",
-                ""
-            ),
-
-            "toon_fit_score": score,
-
-            "hook": analysis.get(
-                "hook",
-                ""
-            ),
-
-            "story_angle": analysis.get(
-                "story_angle",
-                ""
-            ),
-        }
-
-    except urllib.error.HTTPError as e:
-
-        body = (
-            e.read()
-            .decode(
-                "utf-8",
-                errors="ignore"
+            raw_text = (
+                result
+                ["candidates"]
+                [0]
+                ["content"]
+                ["parts"]
+                [0]
+                ["text"]
             )
-        )
 
-        print(
-            f"❌ Gemini 분석 실패 HTTP {e.code}"
-        )
+            analysis = json.loads(
+                raw_text
+            )
 
-        print(body)
+            try:
 
-        return None
+                score = int(
+                    analysis.get(
+                        "toon_fit_score",
+                        50
+                    )
+                )
 
-    except Exception as e:
+            except (
+                TypeError,
+                ValueError
+            ):
 
-        print(
-            f"❌ Gemini 분석 실패: {e}"
-        )
+                score = 50
 
-        return None
+            score = max(
+                1,
+                min(
+                    100,
+                    score
+                )
+            )
+
+            return {
+
+                "category":
+                    analysis.get(
+                        "category",
+                        "기타"
+                    ),
+
+                "keyword":
+                    analysis.get(
+                        "keyword",
+                        ""
+                    ),
+
+                "ai_summary":
+                    analysis.get(
+                        "ai_summary",
+                        ""
+                    ),
+
+                "toon_fit_score":
+                    score,
+
+                "hook":
+                    analysis.get(
+                        "hook",
+                        ""
+                    ),
+
+                "story_angle":
+                    analysis.get(
+                        "story_angle",
+                        ""
+                    ),
+            }
+
+
+        except urllib.error.HTTPError as e:
+
+            error_body = (
+                e.read()
+                .decode(
+                    "utf-8",
+                    errors="ignore"
+                )
+            )
+
+
+            # 무료 할당량 초과
+            if e.code == 429:
+
+                raise GeminiQuotaError(
+                    error_body
+                )
+
+
+            # 일시적 과부하
+            if (
+                e.code == 503
+                and attempt < 3
+            ):
+
+                wait_seconds = (
+                    attempt * 2
+                )
+
+                print(
+                    "⚠️ Gemini 503 과부하. "
+                    f"{wait_seconds}초 후 "
+                    f"재시도 ({attempt}/3)"
+                )
+
+                time.sleep(
+                    wait_seconds
+                )
+
+                continue
+
+
+            print(
+                f"❌ Gemini 분석 실패 "
+                f"HTTP {e.code}"
+            )
+
+            print(
+                error_body
+            )
+
+            return None
+
+
+        except Exception as e:
+
+            print(
+                f"❌ Gemini 분석 실패: {e}"
+            )
+
+            return None
+
+
+    return None
 
 
 # =========================================================
-# 6. Supabase 저장
+# 9. Supabase 저장
 # =========================================================
 
 def save_to_supabase(row):
 
     endpoint = (
-        f"{SUPABASE_URL}/rest/v1/toon_archive"
+        f"{SUPABASE_URL}"
+        "/rest/v1/toon_archive"
         "?on_conflict=source_url"
     )
 
-    payload = json.dumps(
-        row,
-        ensure_ascii=False
-    ).encode("utf-8")
-
     req = urllib.request.Request(
+
         endpoint,
-        data=payload,
+
+        data=json.dumps(
+            row,
+            ensure_ascii=False
+        ).encode(
+            "utf-8"
+        ),
+
         headers={
-            "apikey": SUPABASE_SECRET_KEY,
+
+            "apikey":
+                SUPABASE_SECRET_KEY,
 
             "Authorization":
-                f"Bearer {SUPABASE_SECRET_KEY}",
+                f"Bearer "
+                f"{SUPABASE_SECRET_KEY}",
 
             "Content-Type":
                 "application/json",
@@ -362,6 +589,7 @@ def save_to_supabase(row):
             "Prefer":
                 "resolution=merge-duplicates",
         },
+
         method="POST",
     )
 
@@ -387,10 +615,13 @@ def save_to_supabase(row):
         )
 
         print(
-            f"❌ Supabase 저장 실패 HTTP {e.code}"
+            f"❌ Supabase 저장 실패 "
+            f"HTTP {e.code}"
         )
 
-        print(error_body)
+        print(
+            error_body
+        )
 
         return False
 
@@ -404,30 +635,15 @@ def save_to_supabase(row):
 
 
 # =========================================================
-# 7. 전체 실행
+# 10. 검색 결과를 골고루 섞기
 # =========================================================
 
-def main():
+def collect_candidates():
 
-    print("")
-    print("==============================")
-    print("🚀 TOON ARCHIVE 자동 수집 시작")
-    print("==============================")
-    print("")
-
-    all_items = {}
-
-    # -----------------------------------------------------
-    # Serper 검색
-    # -----------------------------------------------------
-
-    print(
-        "🔍 1단계: Serper 검색 데이터 수집"
-    )
+    results_by_query = []
 
     for query in QUERIES:
 
-        print("")
         print(
             f"검색 중: {query}"
         )
@@ -440,78 +656,291 @@ def main():
             f"→ {len(results)}개 발견"
         )
 
-        for item in results:
+        results_by_query.append(
+            results
+        )
 
-            # URL 기준 중복 제거
-            all_items[
-                item["source_url"]
-            ] = item
 
-    print("")
-    print(
-        f"✅ 중복 제거 후 "
-        f"{len(all_items)}개"
+    # 검색어 하나가 후보를 독점하지 않도록
+    # 첫 번째 결과 → 다음 검색어 첫 번째 결과 → ...
+    candidates = []
+
+    seen_urls = set()
+
+    max_len = max(
+        (
+            len(items)
+            for items
+            in results_by_query
+        ),
+        default=0
     )
 
-    if not all_items:
 
-        print("")
+    for index in range(
+        max_len
+    ):
+
+        for items in results_by_query:
+
+            if index >= len(items):
+                continue
+
+            item = items[
+                index
+            ]
+
+            url = item[
+                "source_url"
+            ]
+
+            if url in seen_urls:
+                continue
+
+            seen_urls.add(
+                url
+            )
+
+            candidates.append(
+                item
+            )
+
+
+    return candidates
+
+
+# =========================================================
+# 11. 전체 실행
+# =========================================================
+
+def main():
+
+    print("")
+
+    print(
+        "=============================="
+    )
+
+    print(
+        "🚀 TOON ARCHIVE 자동 수집 시작"
+    )
+
+    print(
+        "=============================="
+    )
+
+    print("")
+
+
+    # -----------------------------------------------------
+    # 1단계
+    # -----------------------------------------------------
+
+    print(
+        "🔍 1단계: "
+        "Serper 검색 데이터 수집"
+    )
+
+    candidates = (
+        collect_candidates()
+    )
+
+    print(
+        f"✅ 중복 제거 후 후보: "
+        f"{len(candidates)}개"
+    )
+
+
+    if not candidates:
+
         print(
             "❌ 검색 결과가 없습니다."
         )
 
         sys.exit(1)
 
+
     # -----------------------------------------------------
-    # Gemini 분석 + DB 저장
+    # 2단계
     # -----------------------------------------------------
 
     print("")
+
     print(
-        "🤖 2단계: Gemini 분석 시작"
+        "🧹 2단계: "
+        "이미 DB에 있는 URL 제외"
     )
 
+    existing_urls = (
+        get_existing_urls()
+    )
+
+
+    new_candidates = [
+
+        item
+
+        for item in candidates
+
+        if item[
+            "source_url"
+        ] not in existing_urls
+
+    ]
+
+
+    print(
+        f"기존 DB URL: "
+        f"{len(existing_urls)}개"
+    )
+
+    print(
+        f"새 후보: "
+        f"{len(new_candidates)}개"
+    )
+
+
+    if not new_candidates:
+
+        print(
+            "✅ 오늘 새로 분석할 "
+            "URL이 없습니다."
+        )
+
+        return
+
+
+    # -----------------------------------------------------
+    # Gemini 분석 개수 제한
+    # -----------------------------------------------------
+
+    selected = (
+        new_candidates[
+            :MAX_GEMINI_REQUESTS
+        ]
+    )
+
+
+    # -----------------------------------------------------
+    # 3단계
+    # -----------------------------------------------------
+
+    print("")
+
+    print(
+        "🤖 3단계: Gemini 분석"
+    )
+
+    print(
+        f"오늘 Gemini 최대 호출 수: "
+        f"{MAX_GEMINI_REQUESTS}회"
+    )
+
+    print(
+        f"실제 분석 대상: "
+        f"{len(selected)}개"
+    )
+
+    print(
+        f"저장 기준 점수: "
+        f"{MIN_TOON_FIT_SCORE}점 이상"
+    )
+
+
     success_count = 0
+
+    low_score_count = 0
+
     fail_count = 0
 
-    total = len(all_items)
+    gemini_call_count = 0
+
 
     for number, item in enumerate(
-        all_items.values(),
+        selected,
         start=1
     ):
 
         print("")
-        print(
-            f"[{number}/{total}]"
-        )
 
         print(
-            item["source_title"][:80]
+            f"[{number}/{len(selected)}] "
+            f"{item['source_title'][:80]}"
         )
 
-        analysis = analyze_with_gemini(
-            item
-        )
+
+        try:
+
+            gemini_call_count += 1
+
+            analysis = (
+                analyze_with_gemini(
+                    item
+                )
+            )
+
+
+        except GeminiQuotaError as e:
+
+            print(
+                "🛑 Gemini 무료 할당량을 "
+                "모두 사용했습니다."
+            )
+
+            print(
+                "오늘 수집은 여기서 "
+                "중단합니다."
+            )
+
+            print(
+                str(e)[:500]
+            )
+
+            break
+
 
         if not analysis:
+
             fail_count += 1
+
             continue
 
-        # 인스타툰 소재 적합도가 너무 낮으면 저장하지 않음
-        if analysis["toon_fit_score"] < 65:
+
+        # -------------------------------------------------
+        # 낮은 점수 제거
+        # -------------------------------------------------
+
+        if (
+            analysis[
+                "toon_fit_score"
+            ]
+            < MIN_TOON_FIT_SCORE
+        ):
+
+            low_score_count += 1
+
             print(
-                f"⏭️ 적합도 낮아서 제외: "
+                "⏭️ 적합도 낮아서 제외: "
                 f"{analysis['toon_fit_score']}점"
             )
+
             continue
 
+
+        # -------------------------------------------------
+        # DB 저장
+        # -------------------------------------------------
+
         now = (
-            datetime.datetime.now(
+            datetime
+            .datetime
+            .now(
                 datetime.timezone.utc
             )
             .isoformat()
-        )       
+        )
+
+
         row = {
 
             # 실제 검색 데이터
@@ -539,26 +968,29 @@ def main():
                 analysis["ai_summary"],
 
             "toon_fit_score":
-                analysis["toon_fit_score"],
+                analysis[
+                    "toon_fit_score"
+                ],
 
             "hook":
                 analysis["hook"],
 
             "story_angle":
-                analysis["story_angle"],
+                analysis[
+                    "story_angle"
+                ],
 
             "ai_model":
-                model_name(),
+                GEMINI_MODEL,
 
             "analyzed_at":
                 now,
         }
 
-        saved = save_to_supabase(
-            row
-        )
 
-        if saved:
+        if save_to_supabase(
+            row
+        ):
 
             success_count += 1
 
@@ -570,30 +1002,48 @@ def main():
 
             fail_count += 1
 
+
     # -----------------------------------------------------
     # 결과
     # -----------------------------------------------------
 
     print("")
-    print("==============================")
-    print("🎉 자동 수집 종료")
-    print("==============================")
 
     print(
-        f"성공: {success_count}"
+        "=============================="
     )
 
     print(
-        f"실패: {fail_count}"
+        "🎉 자동 수집 종료"
+    )
+
+    print(
+        "=============================="
+    )
+
+    print(
+        f"Gemini 호출: "
+        f"{gemini_call_count}회"
+    )
+
+    print(
+        f"DB 저장 성공: "
+        f"{success_count}개"
+    )
+
+    print(
+        f"{MIN_TOON_FIT_SCORE}점 미만 제외: "
+        f"{low_score_count}개"
+    )
+
+    print(
+        f"실패: "
+        f"{fail_count}개"
     )
 
     print("")
 
 
-def model_name():
-
-    return "gemini-3.7-flash"
-
-
 if __name__ == "__main__":
+
     main()
