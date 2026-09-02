@@ -3,28 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TOON ARCHIVE — 일간 트렌드 아카이브</title>
+<title>TOON ARCHIVE — 일간 트렌드 & 베댓 TOP 10</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f7f6f3;color:#222;font-family:-apple-system,Pretendard,sans-serif}
-.app{max-width:1400px;margin:auto;padding:32px 24px}
+*{box-sizing:border-box}
+body{margin:0;background:#f7f6f3;color:#222;font-family:-apple-system,BlinkMacSystemFont,Pretendard,sans-serif}
+.app{max-width:1440px;margin:auto;padding:32px 24px}
 header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;border-bottom:2px solid #222;padding-bottom:16px}
 .logo{font-size:24px;font-weight:900;letter-spacing:-1px}
-.grid{display:grid;grid-template-columns:2.2fr 1fr;gap:24px}
+.grid{display:grid;grid-template-columns:2.4fr 1fr;gap:24px}
 .panel{background:#fff;border:1px solid #e3e0d8;border-radius:16px;padding:24px}
-.controls{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.controls{display:flex;gap:12px;margin-bottom:16px;align-items:center}
 select,input,button{border:1px solid #ddd;border-radius:8px;padding:8px 12px;font-size:13px}
-table{width:100%;border-collapse:collapse;margin-top:10px}
-th,td{padding:12px 10px;text-align:left;border-bottom:1px solid #eee;font-size:13px;vertical-align:middle}
+.filter-btn{cursor:pointer;background:#fff;font-weight:600}
+.filter-btn.active{background:#222;color:#fff;border-color:#222}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{padding:14px 12px;text-align:left;border-bottom:1px solid #eee;font-size:13px;vertical-align:top}
 th{background:#f9f8f5;font-weight:700;color:#555}
+.rank-num{font-size:15px;font-weight:900;color:#888;text-align:center}
 .tag{display:inline-block;padding:3px 7px;border-radius:4px;font-size:11px;font-weight:700}
 .tag-직장{background:#e8f0fe;color:#1a73e8}
 .tag-연애{background:#fce8e6;color:#d93025}
-.scores{display:flex;gap:4px;font-size:11px;color:#666}
-.score-badge{background:#eee;padding:2px 5px;border-radius:3px}
-.reaction{color:#666;font-size:12px;margin-top:4px}
+.comment-box{background:#faf9f6;border:1px solid #f0eee8;border-radius:8px;padding:8px 10px;margin-top:6px}
+.comment-item{font-size:12px;color:#444;line-height:1.5;margin-bottom:4px;display:flex;justify-content:space-between;gap:8px}
+.comment-item:last-child{margin-bottom:0}
+.like-badge{color:#e67e22;font-weight:700;font-size:11px;white-space:nowrap}
+.scores{display:flex;gap:4px;font-size:11px;margin-top:6px}
+.score-badge{background:#f0eee9;padding:2px 6px;border-radius:4px;color:#555}
 .memo-area{display:flex;gap:8px;margin-bottom:12px}
 .memo-area input{flex:1}
-.memo-item{padding:10px;background:#faf9f6;border:1px solid #eee;border-radius:8px;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between}
+.memo-item{padding:10px;background:#faf9f6;border:1px solid #eee;border-radius:8px;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -32,7 +40,7 @@ th{background:#f9f8f5;font-weight:700;color:#555}
 <header>
   <div>
     <div class="logo">TOON TREND ARCHIVE</div>
-    <div style="font-size:12px;color:#777;margin-top:4px">인기 키워드 · 후킹 제목 · 대중 반응 아카이빙</div>
+    <div style="font-size:12px;color:#777;margin-top:4px">오늘의 직장 & 연애 추천순 바이럴 TOP 10 + 베스트 댓글</div>
   </div>
   <select id="dateSelect" onchange="switchDate(this.value)"></select>
 </header>
@@ -40,18 +48,18 @@ th{background:#f9f8f5;font-weight:700;color:#555}
 <div class="grid">
   <section class="panel">
     <div class="controls">
-      <button onclick="filterCat('all')">전체</button>
-      <button onclick="filterCat('직장')">직장</button>
-      <button onclick="filterCat('연애')">연애</button>
+      <button class="filter-btn active" onclick="filterCat('all', this)">전체 10개</button>
+      <button class="filter-btn" onclick="filterCat('직장', this)">직장</button>
+      <button class="filter-btn" onclick="filterCat('연애', this)">연애</button>
     </div>
     <div style="overflow-x:auto">
       <table>
         <thead>
           <tr>
-            <th style="width:60px">분류</th>
-            <th style="width:110px">키워드</th>
-            <th>바이럴 제목 (후킹 카피) & 독자 반응</th>
-            <th style="width:160px">평가 지표 (5점 만점)</th>
+            <th style="width:40px">#</th>
+            <th style="width:70px">분류</th>
+            <th>바이럴 제목 & 추천수 상위 베스트 댓글</th>
+            <th style="width:140px">반응 요약 / 지표</th>
           </tr>
         </thead>
         <tbody id="tableBody"></tbody>
@@ -62,8 +70,8 @@ th{background:#f9f8f5;font-weight:700;color:#555}
   <aside class="panel">
     <h3 style="margin-top:0;font-size:16px">내 소재 메모장</h3>
     <div class="memo-area">
-      <input id="memoInput" placeholder="새로 떠오른 썰/아이디어 한 줄">
-      <button onclick="addMemo()">저장</button>
+      <input id="memoInput" placeholder="댓글 읽다 떠오른 컷 아이디어">
+      <button onclick="addMemo()" style="background:#222;color:#fff;font-weight:700;cursor:pointer">저장</button>
     </div>
     <div id="memoList"></div>
   </aside>
@@ -71,27 +79,28 @@ th{background:#f9f8f5;font-weight:700;color:#555}
 </div>
 
 <script>
-// data.json 파일을 불러오거나, 로컬 테스트용 기본 데이터
-let archiveData = [
-  {
-    date: "2026-09-02",
-    items: [
-      { category: "직장", keyword: "점심값 눈치", title: "선배가 밥 사준다더니 만원 이하로 고르라 함", reaction: "댓글 400+ / '사주고 욕먹기 1등' 공감 폭발", s: [5,4,5,3,4] },
-      { category: "연애", keyword: "안읽씹 vs 읽씹", title: "안읽씹 4시간 vs 읽씹 30분, 뭐가 더 피 말림?", reaction: "댓글 500+ / 인스타 스토리 보면서 답장 안 하는 심리", s: [5,5,5,2,3] },
-      { category: "직장", keyword: "칼퇴 눈치", title: "6시 정각에 짐 싸면 쳐다보는 팀장님 심리", reaction: "공감 폭발 / '내 근무 끝났는데 왜 죄인 됨?'", s: [4,5,5,3,4] },
-      { category: "연애", keyword: "데이트 비용", title: "만난 지 1년 넘었는데 칼같이 5:5 정산하는 애인", reaction: "갑론을박 / 10원 단위 뿜빠이 정떨어짐", s: [4,5,5,2,3] }
-    ]
-  }
-];
-
-let currentDate = archiveData[0].date;
+let archiveData = [];
+let currentDate = '';
 let currentFilter = 'all';
 
-function init() {
+// data.json 파일 자동 페치 (깃허브 호스팅 대응)
+async function loadData() {
+  try {
+    const res = await fetch('data.json?v=' + Date.now());
+    archiveData = await res.json();
+    if (archiveData.length > 0) {
+      currentDate = archiveData[0].date;
+      populateDateSelector();
+      renderTable();
+    }
+  } catch (e) {
+    console.error("데이터 로드 실패:", e);
+  }
+}
+
+function populateDateSelector() {
   const sel = document.getElementById('dateSelect');
-  sel.innerHTML = archiveData.map(d => `<option value="${d.date}">${d.date} 아카이브</option>`).join('');
-  renderTable();
-  renderMemos();
+  sel.innerHTML = archiveData.map(d => `<option value="${d.date}">${d.date} 트렌드</option>`).join('');
 }
 
 function renderTable() {
@@ -101,13 +110,24 @@ function renderTable() {
   
   document.getElementById('tableBody').innerHTML = filtered.map(item => `
     <tr>
-      <td><span class="tag tag-${item.category}">${item.category}</span></td>
-      <td><b>${item.keyword}</b></td>
+      <td class="rank-num">${item.rank || '-'}</td>
       <td>
-        <div style="font-weight:700;font-size:14px">${item.title}</div>
-        <div class="reaction">💬 ${item.reaction}</div>
+        <span class="tag tag-${item.category}">${item.category}</span>
+        <div style="font-weight:700;font-size:12px;margin-top:4px;color:#555">${item.keyword}</div>
       </td>
       <td>
+        <div style="font-weight:800;font-size:14px;color:#111">${item.title}</div>
+        <div class="comment-box">
+          ${(item.best_comments || []).map(c => `
+            <div class="comment-item">
+              <span>💬 ${c.text}</span>
+              <span class="like-badge">👍 ${c.likes.toLocaleString()}</span>
+            </div>
+          `).join('')}
+        </div>
+      </td>
+      <td>
+        <div style="font-size:12px;color:#666;line-height:1.4">${item.reaction_summary || ''}</div>
         <div class="scores">
           <span class="score-badge">급상승 ${item.s[0]}</span>
           <span class="score-badge">수요 ${item.s[1]}</span>
@@ -119,9 +139,14 @@ function renderTable() {
 }
 
 function switchDate(d) { currentDate = d; renderTable(); }
-function filterCat(c) { currentFilter = c; renderTable(); }
+function filterCat(c, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = c;
+  renderTable();
+}
 
-// 메모 기능 (LocalStorage)
+// 메모 기능
 let memos = JSON.parse(localStorage.getItem('myToonMemos') || '[]');
 function addMemo() {
   const val = document.getElementById('memoInput').value.trim();
@@ -142,7 +167,8 @@ function renderMemos() {
   `).join('');
 }
 
-init();
+loadData();
+renderMemos();
 </script>
 </body>
 </html>
