@@ -498,7 +498,16 @@ def main():
 
             fail_count += 1
             continue
+            
+# 인스타툰 소재 적합도가 너무 낮으면 저장하지 않음
+if analysis["toon_fit_score"] < 65:
 
+    print(
+        f"⏭️ 적합도 낮아서 제외: "
+        f"{analysis['toon_fit_score']}점"
+    )
+
+    continue
         now = (
             datetime.datetime.now(
                 datetime.timezone.utc
