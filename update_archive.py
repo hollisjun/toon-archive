@@ -10,7 +10,6 @@ if not api_key or api_key.strip() == "":
 api_key = api_key.strip()
 
 print("🔍 1단계: 최근 24시간 실시간 트렌드/커뮤니티 원본 수집 중...")
-# 구글 뉴스의 최근 24시간(when:1d) 검색 기능을 활용해 진짜 커뮤니티 썰과 트렌드 기사 수집
 queries = [
     "블라인드 OR 직장인 OR 퇴사 when:1d",
     "네이트판 OR 연애 OR 소개팅 when:1d",
@@ -25,21 +24,19 @@ for q in queries:
         req = urllib.request.Request(rss_url, headers={'User-Agent': 'Mozilla/5.0'})
         xml_data = urllib.request.urlopen(req).read()
         root = ET.fromstring(xml_data)
-        # 각 카테고리별로 최신 글 10개씩 총 30개의 진짜 데이터를 긁어옴
         for item in root.findall('./channel/item')[:10]:
             title = item.find('title').text
             link = item.find('link').text
             real_data_text += f"[{idx}] 제목: {title}\n링크: {link}\n\n"
             idx += 1
     except Exception as e:
-        print(f"⚠️ RSS 수집 중 일부 에러 발생 (무시하고 진행): {e}")
+        pass
 
 if not real_data_text:
     print("❌ 실시간 데이터를 하나도 수집하지 못했습니다.")
     sys.exit(1)
 
 print("🚀 2단계: AI가 수집된 진짜 데이터를 인스타툰 소재로 분석 중...")
-# 안정적인 1.5-flash 모델로 고정
 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
 
 prompt = f"""
@@ -68,9 +65,7 @@ prompt = f"""
 }}]
 """
 
-data = {
-    "contents": [{"parts": [{"text": prompt}]}]
-}
+data = {"contents": [{"parts": [{"text": prompt}]}]}
 
 try:
     req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers={'Content-Type': 'application/json'})
@@ -80,12 +75,8 @@ try:
     
     clean_text = raw_text.replace('```json', '').replace('```', '').strip()
     new_items = json.loads(clean_text)
-except urllib.error.HTTPError as e:
-    error_msg = e.read().decode('utf-8')
-    print(f"❌ API 에러 ({e.code}):\n{error_msg}")
-    sys.exit(1)
 except Exception as e:
-    print(f"❌ 데이터 파싱 에러 발생: {e}")
+    print(f"❌ 에러 발생: {e}")
     sys.exit(1)
 
 print("💾 3단계: 완성된 데이터를 사이트에 누적 저장 중...")
@@ -100,7 +91,16 @@ if os.path.exists('data.json'):
 else:
     archive = []
 
-archive.insert(0, {"date": today, "items": new_items})
+# 당일 중복 생성 방지: 오늘 날짜가 이미 있으면 그 부분만 최신으로 덮어쓰기
+updated = False
+for day_data in archive:
+    if day_data.get("date") == today:
+        day_data["items"] = new_items
+        updated = True
+        break
+
+if not updated:
+    archive.insert(0, {"date": today, "items": new_items})
 
 with open('data.json', 'w', encoding='utf-8') as f:
     json.dump(archive, f, ensure_ascii=False, indent=2)
