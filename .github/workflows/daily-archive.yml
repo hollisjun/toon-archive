@@ -11,6 +11,8 @@ jobs:
       - run: python update_archive.py
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_SEARCH_API_KEY: ${{ secrets.GOOGLE_SERCH_API }}
+          SEARCH_ENGINE_ID: ${{ secrets.SEARCH_ENGINE_ID }}
       - run: |
           git config --global user.name "bot"
           git config --global user.email "bot@github.com"
