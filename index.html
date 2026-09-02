@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TOON ARCHIVE — 일간 트렌드 & 베댓 TOP 10</title>
+<title>TOON ARCHIVE — 일간 트렌드 & 인스타툰 레퍼런스</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f7f6f3;color:#222;font-family:-apple-system,BlinkMacSystemFont,Pretendard,sans-serif}
@@ -23,6 +23,7 @@ th{background:#f9f8f5;font-weight:700;color:#555}
 .tag{display:inline-block;padding:3px 7px;border-radius:4px;font-size:11px;font-weight:700}
 .tag-직장{background:#e8f0fe;color:#1a73e8}
 .tag-연애{background:#fce8e6;color:#d93025}
+.tag-인스타툰{background:#f3e8fd;color:#7e22ce}
 .comment-box{background:#faf9f6;border:1px solid #f0eee8;border-radius:8px;padding:8px 10px;margin-top:6px}
 .comment-item{font-size:12px;color:#444;line-height:1.5;margin-bottom:4px;display:flex;justify-content:space-between;gap:8px}
 .comment-item:last-child{margin-bottom:0}
@@ -42,7 +43,7 @@ th{background:#f9f8f5;font-weight:700;color:#555}
 <header>
   <div>
     <div class="logo">TOON TREND ARCHIVE</div>
-    <div style="font-size:12px;color:#777;margin-top:4px">오늘의 직장 & 연애 추천순 바이럴 TOP 10 + 베스트 댓글</div>
+    <div style="font-size:12px;color:#777;margin-top:4px">오늘의 직장/연애 썰 & 인기 인스타툰 레퍼런스 TOP</div>
   </div>
   <select id="dateSelect" onchange="switchDate(this.value)"></select>
 </header>
@@ -50,9 +51,10 @@ th{background:#f9f8f5;font-weight:700;color:#555}
 <div class="grid">
   <section class="panel">
     <div class="controls">
-      <button class="filter-btn active" onclick="filterCat('all', this)">전체 10개</button>
-      <button class="filter-btn" onclick="filterCat('직장', this)">직장</button>
-      <button class="filter-btn" onclick="filterCat('연애', this)">연애</button>
+      <button class="filter-btn active" onclick="filterCat('all', this)">전체 보기</button>
+      <button class="filter-btn" onclick="filterCat('직장', this)">직장 썰</button>
+      <button class="filter-btn" onclick="filterCat('연애', this)">연애 썰</button>
+      <button class="filter-btn" onclick="filterCat('인스타툰', this)">인스타툰</button>
     </div>
     <div style="overflow-x:auto">
       <table>
@@ -109,37 +111,48 @@ function renderTable() {
   if (!day) return;
   const filtered = currentFilter === 'all' ? day.items : day.items.filter(i => i.category === currentFilter);
   
-  document.getElementById('tableBody').innerHTML = filtered.map(item => `
-    <tr>
-      <td class="rank-num">${item.rank || '-'}</td>
-      <td>
-        <span class="tag tag-${item.category}">${item.category}</span>
-        <div style="font-weight:700;font-size:12px;margin-top:4px;color:#555">${item.keyword}</div>
-      </td>
-      <td>
-        <div style="font-weight:800;font-size:14px;color:#111">
-          ${item.title}
-          ${item.link ? `<a href="${item.link}" target="_blank" class="link-btn">원문 보기 ↗</a>` : ''}
-        </div>
-        <div class="comment-box">
-          ${(item.best_comments || []).map(c => `
-            <div class="comment-item">
-              <span>💬 ${c.text}</span>
-              <span class="like-badge">👍 ${c.likes.toLocaleString()}</span>
-            </div>
-          `).join('')}
-        </div>
-      </td>
-      <td>
-        <div style="font-size:12px;color:#666;line-height:1.4">${item.reaction_summary || ''}</div>
-        <div class="scores">
-          <span class="score-badge">급상승 ${item.s[0]}</span>
-          <span class="score-badge">수요 ${item.s[1]}</span>
-          <span class="score-badge">적합 ${item.s[2]}</span>
-        </div>
-      </td>
-    </tr>
-  `).join('');
+  document.getElementById('tableBody').innerHTML = filtered.map(item => {
+    // AI가 만든 링크 대신, 제목이나 키워드로 구글 검색을 하도록 안전한 링크 생성
+    const searchQuery = encodeURIComponent(item.title || item.keyword);
+    let searchUrl = `https://www.google.com/search?q=${searchQuery}`;
+    
+    // 인스타툰 카테고리면 인스타그램 안에서 검색하는 느낌으로 검색어 보강
+    if(item.category === '인스타툰') {
+      searchUrl = `https://www.google.com/search?q=site:instagram.com 인스타툰 ${searchQuery}`;
+    }
+
+    return `
+      <tr>
+        <td class="rank-num">${item.rank || '-'}</td>
+        <td>
+          <span class="tag tag-${item.category}">${item.category}</span>
+          <div style="font-weight:700;font-size:12px;margin-top:4px;color:#555">${item.keyword}</div>
+        </td>
+        <td>
+          <div style="font-weight:800;font-size:14px;color:#111">
+            ${item.title}
+            <a href="${searchUrl}" target="_blank" class="link-btn">🔍 원문 검색</a>
+          </div>
+          <div class="comment-box">
+            ${(item.best_comments || []).map(c => `
+              <div class="comment-item">
+                <span>💬 ${c.text}</span>
+                <span class="like-badge">👍 ${c.likes.toLocaleString()}</span>
+              </div>
+            `).join('')}
+          </div>
+        </td>
+        <td>
+          <div style="font-size:12px;color:#666;line-height:1.4">${item.reaction_summary || ''}</div>
+          <div class="scores">
+            <span class="score-badge">급상승 ${item.s[0]}</span>
+            <span class="score-badge">수요 ${item.s[1]}</span>
+            <span class="score-badge">적합 ${item.s[2]}</span>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function switchDate(d) { currentDate = d; renderTable(); }
