@@ -8,7 +8,7 @@ if not api_key or api_key.strip() == "":
 
 api_key = api_key.strip()
 
-# 1. 내 API 키로 쓸 수 있는 모델 리스트 확인하기 (404 원천 차단)
+# 1. 내 API 키로 쓸 수 있는 모델 리스트 확인하기
 list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
 try:
     req = urllib.request.Request(list_url)
@@ -19,9 +19,9 @@ except Exception as e:
     print(f"❌ 모델 목록 조회 실패: {e}")
     sys.exit(1)
 
-# 2. 접근 가능한 가장 좋은 모델 자동 선택
+# 2. 에러가 추천한 최신 3.6 버전을 최우선으로 찾도록 수정
 target_model = None
-for preferred in ["models/gemini-1.5-flash", "models/gemini-2.0-flash", "models/gemini-1.5-pro", "models/gemini-pro", "models/gemini-1.0-pro"]:
+for preferred in ["models/gemini-3.6-flash", "models/gemini-2.5-flash", "models/gemini-1.5-flash"]:
     if preferred in available_models:
         target_model = preferred
         break
@@ -53,7 +53,6 @@ try:
     result = json.loads(res.read().decode('utf-8'))
     raw_text = result['candidates'][0]['content']['parts'][0]['text']
     
-    # AI가 마크다운을 붙이더라도 안전하게 JSON만 추출
     clean_text = raw_text.replace('```json', '').replace('```', '').strip()
     new_items = json.loads(clean_text)
 except urllib.error.HTTPError as e:
