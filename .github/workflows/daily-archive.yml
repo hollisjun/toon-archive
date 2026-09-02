@@ -1,21 +1,40 @@
-name: Daily Trend Archive
+name: Daily Toon Archive
+
 on:
   schedule:
-    - cron: '0 0 * * *'
+    # 매일 한국시간 오전 9시 실행
+    # GitHub Actions cron은 UTC 기준
+    - cron: "0 0 * * *"
+
+  # 버튼 눌러서 직접 실행도 가능
   workflow_dispatch:
+
 jobs:
-  update-data:
+  collect:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - run: python update_archive.py
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run toon archive collector
         env:
+
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GOOGLE_SEARCH_API_KEY: ${{ secrets.GOOGLE_SERCH_API }}
+
+          GOOGLE_SEARCH_API_KEY: ${{ secrets.GOOGLE_SEARCH_API_KEY }}
+
           SEARCH_ENGINE_ID: ${{ secrets.SEARCH_ENGINE_ID }}
-      - run: |
-          git config --global user.name "bot"
-          git config --global user.email "bot@github.com"
-          git add data.json
-          git commit -m "Auto: $(date +'%Y-%m-%d') 트렌드 업데이트" || exit 0
-          git push
+
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+
+        run: |
+          python update_archive.py
