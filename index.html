@@ -1,187 +1,1362 @@
 <!doctype html>
 <html lang="ko">
+
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TOON ARCHIVE — 일간 트렌드 & 인스타툰 레퍼런스</title>
-<style>
-*{box-sizing:border-box}
-body{margin:0;background:#f7f6f3;color:#222;font-family:-apple-system,BlinkMacSystemFont,Pretendard,sans-serif}
-.app{max-width:1440px;margin:auto;padding:32px 24px}
-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:24px;border-bottom:2px solid #222;padding-bottom:16px}
-.logo{font-size:24px;font-weight:900;letter-spacing:-1px}
-.grid{display:grid;grid-template-columns:2.4fr 1fr;gap:24px}
-.panel{background:#fff;border:1px solid #e3e0d8;border-radius:16px;padding:24px}
-.controls{display:flex;gap:12px;margin-bottom:16px;align-items:center}
-select,input,button{border:1px solid #ddd;border-radius:8px;padding:8px 12px;font-size:13px}
-.filter-btn{cursor:pointer;background:#fff;font-weight:600}
-.filter-btn.active{background:#222;color:#fff;border-color:#222}
-table{width:100%;border-collapse:collapse;margin-top:8px}
-th,td{padding:14px 12px;text-align:left;border-bottom:1px solid #eee;font-size:13px;vertical-align:top}
-th{background:#f9f8f5;font-weight:700;color:#555}
-.rank-num{font-size:15px;font-weight:900;color:#888;text-align:center}
-.tag{display:inline-block;padding:3px 7px;border-radius:4px;font-size:11px;font-weight:700}
-.tag-직장{background:#e8f0fe;color:#1a73e8}
-.tag-연애{background:#fce8e6;color:#d93025}
-.tag-인스타툰{background:#f3e8fd;color:#7e22ce}
-.comment-box{background:#faf9f6;border:1px solid #f0eee8;border-radius:8px;padding:8px 10px;margin-top:6px}
-.comment-item{font-size:12px;color:#444;line-height:1.5;margin-bottom:4px;display:flex;justify-content:space-between;gap:8px}
-.comment-item:last-child{margin-bottom:0}
-.like-badge{color:#e67e22;font-weight:700;font-size:11px;white-space:nowrap}
-.scores{display:flex;gap:4px;font-size:11px;margin-top:6px}
-.score-badge{background:#f0eee9;padding:2px 6px;border-radius:4px;color:#555}
-.link-btn{display:inline-block;margin-left:8px;color:#fff;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:bold;text-decoration:none;vertical-align:middle}
-.memo-area{display:flex;gap:8px;margin-bottom:12px}
-.memo-area input{flex:1}
-.memo-item{padding:10px;background:#faf9f6;border:1px solid #eee;border-radius:8px;margin-bottom:8px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
-@media(max-width:900px){.grid{grid-template-columns:1fr}}
-</style>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>
+    TOON ARCHIVE — 인스타툰 소재 아카이브
+  </title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: #f7f6f3;
+      color: #222;
+
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        Pretendard,
+        sans-serif;
+    }
+
+    .app {
+      max-width: 1440px;
+      margin: auto;
+      padding: 32px 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+
+      border-bottom: 2px solid #222;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -1px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #777;
+      margin-top: 4px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 2.4fr 1fr;
+      gap: 24px;
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid #e3e0d8;
+      border-radius: 16px;
+      padding: 24px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    select,
+    input,
+    button {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .filter-btn {
+      cursor: pointer;
+      background: #fff;
+      font-weight: 600;
+    }
+
+    .filter-btn.active {
+      background: #222;
+      color: #fff;
+      border-color: #222;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    th,
+    td {
+      padding: 14px 12px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f9f8f5;
+      font-weight: 700;
+      color: #555;
+    }
+
+    .rank-num {
+      font-size: 15px;
+      font-weight: 900;
+      color: #888;
+      text-align: center;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 3px 7px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .tag-직장 {
+      background: #e8f0fe;
+      color: #1a73e8;
+    }
+
+    .tag-연애 {
+      background: #fce8e6;
+      color: #d93025;
+    }
+
+    .tag-일상 {
+      background: #e9f7ef;
+      color: #18794e;
+    }
+
+    .tag-기타 {
+      background: #f0eee9;
+      color: #555;
+    }
+
+    .keyword {
+      font-weight: 700;
+      font-size: 12px;
+      margin-top: 5px;
+      color: #555;
+    }
+
+    .source-title {
+      font-weight: 800;
+      font-size: 14px;
+      color: #111;
+      line-height: 1.5;
+    }
+
+    .real-data-label {
+      font-size: 10px;
+      color: #888;
+      margin-top: 8px;
+    }
+
+    .ai-box {
+      background: #faf9f6;
+      border: 1px solid #f0eee8;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 10px;
+    }
+
+    .ai-title {
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+
+    .ai-summary {
+      font-size: 12px;
+      color: #444;
+      line-height: 1.6;
+    }
+
+    .link-btn {
+      display: inline-block;
+      margin-left: 8px;
+
+      background: #222;
+      color: #fff;
+
+      padding: 3px 8px;
+      border-radius: 5px;
+
+      font-size: 11px;
+      font-weight: bold;
+
+      text-decoration: none;
+      vertical-align: middle;
+    }
+
+    .hook {
+      font-size: 12px;
+      color: #333;
+      line-height: 1.5;
+
+      background: #fff8e8;
+      padding: 9px;
+      border-radius: 8px;
+
+      margin-bottom: 8px;
+    }
+
+    .story-angle {
+      font-size: 11px;
+      color: #666;
+      line-height: 1.5;
+    }
+
+    .scores {
+      display: flex;
+      gap: 4px;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+
+    .score-badge {
+      background: #222;
+      color: #fff;
+
+      padding: 4px 7px;
+      border-radius: 5px;
+
+      font-weight: 700;
+    }
+
+    .date-info {
+      font-size: 10px;
+      color: #aaa;
+      margin-top: 8px;
+    }
+
+    .memo-area {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .memo-area input {
+      flex: 1;
+    }
+
+    .memo-item {
+      padding: 10px;
+
+      background: #faf9f6;
+      border: 1px solid #eee;
+      border-radius: 8px;
+
+      margin-bottom: 8px;
+
+      font-size: 13px;
+
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .status {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 12px;
+    }
+
+    .error-box {
+      background: #fff1f0;
+      border: 1px solid #ffccc7;
+
+      padding: 14px;
+      border-radius: 8px;
+
+      color: #a8071a;
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      header {
+        align-items: flex-start;
+        gap: 12px;
+        flex-direction: column;
+      }
+    }
+  </style>
 </head>
+
+
 <body>
+
 <div class="app">
-<header>
-  <div>
-    <div class="logo">TOON TREND ARCHIVE</div>
-    <div style="font-size:12px;color:#777;margin-top:4px">오늘의 직장/연애 썰 & 인기 인스타툰 레퍼런스 TOP</div>
+
+  <header>
+
+    <div>
+
+      <div class="logo">
+        TOON TREND ARCHIVE
+      </div>
+
+      <div class="subtitle">
+        실제 검색 데이터 + AI 인스타툰 소재 분석
+      </div>
+
+    </div>
+
+
+    <select
+      id="dateSelect"
+      onchange="switchDate(this.value)"
+    >
+      <option value="all">
+        전체 날짜
+      </option>
+    </select>
+
+  </header>
+
+
+  <div class="grid">
+
+
+    <!-- ====================================== -->
+    <!-- 왼쪽 : 아카이브 -->
+    <!-- ====================================== -->
+
+    <section class="panel">
+
+      <div class="controls">
+
+        <button
+          class="filter-btn active"
+          onclick="filterCat('all', this)"
+        >
+          전체 보기
+        </button>
+
+        <button
+          class="filter-btn"
+          onclick="filterCat('직장', this)"
+        >
+          직장
+        </button>
+
+        <button
+          class="filter-btn"
+          onclick="filterCat('연애', this)"
+        >
+          연애
+        </button>
+
+        <button
+          class="filter-btn"
+          onclick="filterCat('일상', this)"
+        >
+          일상
+        </button>
+
+        <button
+          class="filter-btn"
+          onclick="filterCat('기타', this)"
+        >
+          기타
+        </button>
+
+      </div>
+
+
+      <div
+        id="status"
+        class="status"
+      >
+        데이터를 불러오는 중...
+      </div>
+
+
+      <div style="overflow-x:auto">
+
+        <table>
+
+          <thead>
+
+            <tr>
+
+              <th style="width:40px">
+                #
+              </th>
+
+              <th style="width:90px">
+                분류
+              </th>
+
+              <th>
+                실제 원본 / AI 분석
+              </th>
+
+              <th style="width:240px">
+                인스타툰 활용 아이디어
+              </th>
+
+            </tr>
+
+          </thead>
+
+
+          <tbody id="tableBody">
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ====================================== -->
+    <!-- 오른쪽 : 메모장 -->
+    <!-- ====================================== -->
+
+    <aside class="panel">
+
+      <h3
+        style="
+          margin-top:0;
+          font-size:16px;
+        "
+      >
+        내 소재 메모장
+      </h3>
+
+
+      <div class="memo-area">
+
+        <input
+          id="memoInput"
+          placeholder="떠오른 인스타툰 아이디어"
+        >
+
+        <button
+          onclick="addMemo()"
+          style="
+            background:#222;
+            color:#fff;
+            font-weight:700;
+            cursor:pointer;
+          "
+        >
+          저장
+        </button>
+
+      </div>
+
+
+      <div id="memoList">
+      </div>
+
+    </aside>
+
   </div>
-  <select id="dateSelect" onchange="switchDate(this.value)"></select>
-</header>
 
-<div class="grid">
-  <section class="panel">
-    <div class="controls">
-      <button class="filter-btn active" onclick="filterCat('all', this)">전체 보기</button>
-      <button class="filter-btn" onclick="filterCat('직장', this)">직장 썰</button>
-      <button class="filter-btn" onclick="filterCat('연애', this)">연애 썰</button>
-      <button class="filter-btn" onclick="filterCat('인스타툰', this)">인스타툰</button>
-    </div>
-    <div style="overflow-x:auto">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px">#</th>
-            <th style="width:70px">분류</th>
-            <th>바이럴 제목 & 추천수 상위 베스트 댓글</th>
-            <th style="width:140px">반응 요약 / 지표</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
-  </section>
+</div>
 
-  <aside class="panel">
-    <h3 style="margin-top:0;font-size:16px">내 소재 메모장</h3>
-    <div class="memo-area">
-      <input id="memoInput" placeholder="댓글 읽다 떠오른 컷 아이디어">
-      <button onclick="addMemo()" style="background:#222;color:#fff;font-weight:700;cursor:pointer">저장</button>
-    </div>
-    <div id="memoList"></div>
-  </aside>
-</div>
-</div>
+
 
 <script>
+
+
+// =========================================================
+// ★★★ 여기 두 군데만 네 Supabase 정보 넣기 ★★★
+// =========================================================
+
+
+const SUPABASE_URL =
+  "https://ossptocscxjkboibosyv.supabase.co";
+
+
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_Xg3cw8pa6fAeZ6rg85MizQ_VrS5DkBk";
+
+
+
+// =========================================================
+// 기본 변수
+// =========================================================
+
+
 let archiveData = [];
-let currentDate = '';
-let currentFilter = 'all';
+
+let currentDate = "all";
+
+let currentFilter = "all";
+
+
+
+// =========================================================
+// Supabase에서 데이터 가져오기
+// =========================================================
+
 
 async function loadData() {
+
+  const status =
+    document.getElementById("status");
+
+
   try {
-    const res = await fetch('data.json?v=' + Date.now());
-    archiveData = await res.json();
-    if (archiveData.length > 0) {
-      currentDate = archiveData[0].date;
-      populateDateSelector();
-      renderTable();
+
+    status.textContent =
+      "Supabase에서 데이터를 불러오는 중...";
+
+
+    const endpoint =
+      `${SUPABASE_URL}/rest/v1/toon_archive` +
+      `?select=*` +
+      `&order=collected_at.desc` +
+      `&limit=500`;
+
+
+    const response = await fetch(
+      endpoint,
+      {
+        headers: {
+
+          "apikey":
+            SUPABASE_PUBLISHABLE_KEY
+
+        }
+      }
+    );
+
+
+    if (!response.ok) {
+
+      const errorText =
+        await response.text();
+
+      throw new Error(
+        `Supabase 오류 ${response.status}: ${errorText}`
+      );
+
     }
-  } catch (e) {
-    console.error("데이터 로드 실패:", e);
+
+
+    archiveData =
+      await response.json();
+
+
+    console.log(
+      "불러온 DB 데이터:",
+      archiveData
+    );
+
+
+    populateDateSelector();
+
+    renderTable();
+
+
+    status.textContent =
+      `총 ${archiveData.length}개의 실제 검색 데이터를 불러왔습니다.`;
+
+
+  } catch (error) {
+
+    console.error(
+      "데이터 로드 실패:",
+      error
+    );
+
+
+    status.innerHTML = `
+      <div class="error-box">
+        데이터를 불러오지 못했습니다.<br><br>
+        ${escapeHtml(error.message)}
+      </div>
+    `;
+
   }
+
 }
+
+
+
+// =========================================================
+// 날짜 선택 메뉴 만들기
+// =========================================================
+
 
 function populateDateSelector() {
-  const sel = document.getElementById('dateSelect');
-  sel.innerHTML = archiveData.map(d => `<option value="${d.date}">${d.date} 트렌드</option>`).join('');
+
+  const selector =
+    document.getElementById(
+      "dateSelect"
+    );
+
+
+  const dates = [
+    ...new Set(
+      archiveData
+        .map(item =>
+          formatDateOnly(
+            item.collected_at
+          )
+        )
+        .filter(Boolean)
+    )
+  ];
+
+
+  selector.innerHTML = `
+
+    <option value="all">
+      전체 날짜
+    </option>
+
+    ${dates.map(date => `
+
+      <option value="${date}">
+        ${date}
+      </option>
+
+    `).join("")}
+
+  `;
+
 }
+
+
+
+// =========================================================
+// 표 그리기
+// =========================================================
+
 
 function renderTable() {
-  const day = archiveData.find(d => d.date === currentDate);
-  if (!day) return;
-  const filtered = currentFilter === 'all' ? day.items : day.items.filter(i => i.category === currentFilter);
-  
-  document.getElementById('tableBody').innerHTML = filtered.map(item => {
-    // 파이썬이 긁어온 진짜 원본 링크를 그대로 사용
-    const targetUrl = item.link || '#';
-    const btnColor = item.category === '인스타툰' ? '#e1306c' : '#3b82f6';
-    const btnText = item.category === '인스타툰' ? '인스타 원문 ↗' : '원본 썰 보기 ↗';
 
-    const linkHtml = targetUrl !== '#' ? `<a href="${targetUrl}" target="_blank" class="link-btn" style="background:${btnColor}">${btnText}</a>` : '';
+  let filtered =
+    [...archiveData];
 
-    return `
+
+  // 카테고리 필터
+
+  if (
+    currentFilter !== "all"
+  ) {
+
+    filtered =
+      filtered.filter(
+        item =>
+          item.category ===
+          currentFilter
+      );
+
+  }
+
+
+  // 날짜 필터
+
+  if (
+    currentDate !== "all"
+  ) {
+
+    filtered =
+      filtered.filter(
+        item =>
+          formatDateOnly(
+            item.collected_at
+          ) === currentDate
+      );
+
+  }
+
+
+  const tableBody =
+    document.getElementById(
+      "tableBody"
+    );
+
+
+  if (
+    filtered.length === 0
+  ) {
+
+    tableBody.innerHTML = `
+
       <tr>
-        <td class="rank-num">${item.rank || '-'}</td>
-        <td>
-          <span class="tag tag-${item.category}">${item.category}</span>
-          <div style="font-weight:700;font-size:12px;margin-top:4px;color:#555">${item.keyword}</div>
+
+        <td
+          colspan="4"
+          style="
+            text-align:center;
+            color:#999;
+            padding:40px;
+          "
+        >
+          조건에 맞는 데이터가 없습니다.
         </td>
-        <td>
-          <div style="font-weight:800;font-size:14px;color:#111">
-            ${item.title}
-            ${linkHtml}
-          </div>
-          <div class="comment-box">
-            ${(item.best_comments || []).map(c => `
-              <div class="comment-item">
-                <span>💬 ${c.text}</span>
-                <span class="like-badge">👍 ${c.likes.toLocaleString()}</span>
-              </div>
-            `).join('')}
-          </div>
-        </td>
-        <td>
-          <div style="font-size:12px;color:#666;line-height:1.4">${item.reaction_summary || ''}</div>
-          <div class="scores">
-            <span class="score-badge">급상승 ${item.s[0]}</span>
-            <span class="score-badge">수요 ${item.s[1]}</span>
-            <span class="score-badge">적합 ${item.s[2]}</span>
-          </div>
-        </td>
+
       </tr>
+
     `;
-  }).join('');
+
+    return;
+
+  }
+
+
+  tableBody.innerHTML =
+    filtered.map(
+      (item, index) => {
+
+
+        const title =
+          escapeHtml(
+            item.source_title || ""
+          );
+
+
+        const url =
+          safeUrl(
+            item.source_url
+          );
+
+
+        const category =
+          escapeHtml(
+            item.category || "기타"
+          );
+
+
+        const keyword =
+          escapeHtml(
+            item.keyword || ""
+          );
+
+
+        const summary =
+          escapeHtml(
+            item.ai_summary || ""
+          );
+
+
+        const hook =
+          escapeHtml(
+            item.hook || ""
+          );
+
+
+        const storyAngle =
+          escapeHtml(
+            item.story_angle || ""
+          );
+
+
+        const score =
+          item.toon_fit_score ??
+          "-";
+
+
+        const searchQuery =
+          escapeHtml(
+            item.search_query || ""
+          );
+
+
+        const collectedAt =
+          formatDateTime(
+            item.collected_at
+          );
+
+
+        const linkHtml =
+          url
+          ? `
+
+            <a
+              href="${url}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="link-btn"
+            >
+              원문 보기 ↗
+            </a>
+
+          `
+          : "";
+
+
+        return `
+
+          <tr>
+
+
+            <td class="rank-num">
+
+              ${index + 1}
+
+            </td>
+
+
+            <td>
+
+              <span
+                class="tag tag-${category}"
+              >
+                ${category}
+              </span>
+
+
+              <div class="keyword">
+
+                ${keyword}
+
+              </div>
+
+            </td>
+
+
+
+            <td>
+
+
+              <div class="source-title">
+
+                ${title}
+
+                ${linkHtml}
+
+              </div>
+
+
+              <div class="real-data-label">
+
+                ✓ 실제 검색 데이터
+
+                ${
+                  searchQuery
+                    ? ` · 검색어: ${searchQuery}`
+                    : ""
+                }
+
+              </div>
+
+
+              <div class="ai-box">
+
+                <div class="ai-title">
+
+                  ✨ AI 소재 분석
+
+                </div>
+
+
+                <div class="ai-summary">
+
+                  ${
+                    summary ||
+                    "AI 분석 내용이 없습니다."
+                  }
+
+                </div>
+
+              </div>
+
+
+              <div class="date-info">
+
+                수집:
+                ${collectedAt}
+
+              </div>
+
+
+            </td>
+
+
+
+            <td>
+
+
+              ${
+                hook
+                ? `
+
+                  <div class="hook">
+
+                    <strong>
+                      첫 컷 후킹
+                    </strong>
+
+                    <br>
+
+                    ${hook}
+
+                  </div>
+
+                `
+                : ""
+              }
+
+
+              ${
+                storyAngle
+                ? `
+
+                  <div class="story-angle">
+
+                    <strong>
+                      스토리 방향
+                    </strong>
+
+                    <br>
+
+                    ${storyAngle}
+
+                  </div>
+
+                `
+                : ""
+              }
+
+
+              <div class="scores">
+
+                <span
+                  class="score-badge"
+                >
+                  AI 소재 적합도
+                  ${score}/100
+                </span>
+
+              </div>
+
+
+            </td>
+
+
+          </tr>
+
+        `;
+
+      }
+
+    ).join("");
+
 }
 
-function switchDate(d) { currentDate = d; renderTable(); }
-function filterCat(c, btn) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  currentFilter = c;
+
+
+// =========================================================
+// 날짜 변경
+// =========================================================
+
+
+function switchDate(
+  date
+) {
+
+  currentDate =
+    date;
+
   renderTable();
+
 }
 
-let memos = JSON.parse(localStorage.getItem('myToonMemos') || '[]');
+
+
+// =========================================================
+// 카테고리 변경
+// =========================================================
+
+
+function filterCat(
+  category,
+  button
+) {
+
+  document
+    .querySelectorAll(
+      ".filter-btn"
+    )
+    .forEach(
+      btn =>
+        btn.classList.remove(
+          "active"
+        )
+    );
+
+
+  button
+    .classList.add(
+      "active"
+    );
+
+
+  currentFilter =
+    category;
+
+
+  renderTable();
+
+}
+
+
+
+// =========================================================
+// 날짜 표시
+// =========================================================
+
+
+function formatDateOnly(
+  dateValue
+) {
+
+  if (!dateValue) {
+    return "";
+  }
+
+
+  const date =
+    new Date(
+      dateValue
+    );
+
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+
+    return "";
+
+  }
+
+
+  return date
+    .toLocaleDateString(
+      "ko-KR",
+      {
+        timeZone:
+          "Asia/Seoul",
+
+        year:
+          "numeric",
+
+        month:
+          "2-digit",
+
+        day:
+          "2-digit"
+      }
+    )
+    .replaceAll(
+      ". ",
+      "-"
+    )
+    .replace(
+      ".",
+      ""
+    );
+
+}
+
+
+
+// =========================================================
+// 날짜 + 시간 표시
+// =========================================================
+
+
+function formatDateTime(
+  dateValue
+) {
+
+  if (!dateValue) {
+    return "-";
+  }
+
+
+  const date =
+    new Date(
+      dateValue
+    );
+
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+
+    return "-";
+
+  }
+
+
+  return date
+    .toLocaleString(
+      "ko-KR",
+      {
+        timeZone:
+          "Asia/Seoul"
+      }
+    );
+
+}
+
+
+
+// =========================================================
+// 악성 HTML 방지
+// =========================================================
+
+
+function escapeHtml(
+  value
+) {
+
+  return String(
+    value ?? ""
+  )
+
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+
+}
+
+
+
+// =========================================================
+// URL 안전 처리
+// =========================================================
+
+
+function safeUrl(
+  value
+) {
+
+  if (!value) {
+    return "";
+  }
+
+
+  try {
+
+    const url =
+      new URL(
+        value
+      );
+
+
+    if (
+      url.protocol !== "http:" &&
+      url.protocol !== "https:"
+    ) {
+
+      return "";
+
+    }
+
+
+    return escapeHtml(
+      url.href
+    );
+
+
+  } catch {
+
+    return "";
+
+  }
+
+}
+
+
+
+// =========================================================
+// 개인 메모
+// =========================================================
+
+
+let memos =
+  JSON.parse(
+    localStorage.getItem(
+      "myToonMemos"
+    ) || "[]"
+  );
+
+
+
 function addMemo() {
-  const val = document.getElementById('memoInput').value.trim();
-  if(!val) return;
-  memos.unshift(val);
-  localStorage.setItem('myToonMemos', JSON.stringify(memos));
-  document.getElementById('memoInput').value = '';
+
+  const input =
+    document.getElementById(
+      "memoInput"
+    );
+
+
+  const value =
+    input.value.trim();
+
+
+  if (!value) {
+    return;
+  }
+
+
+  memos.unshift(
+    value
+  );
+
+
+  localStorage.setItem(
+    "myToonMemos",
+    JSON.stringify(
+      memos
+    )
+  );
+
+
+  input.value =
+    "";
+
+
   renderMemos();
+
 }
-function delMemo(idx) {
-  memos.splice(idx, 1);
-  localStorage.setItem('myToonMemos', JSON.stringify(memos));
+
+
+
+function delMemo(
+  index
+) {
+
+  memos.splice(
+    index,
+    1
+  );
+
+
+  localStorage.setItem(
+    "myToonMemos",
+    JSON.stringify(
+      memos
+    )
+  );
+
+
   renderMemos();
+
 }
+
+
+
 function renderMemos() {
-  document.getElementById('memoList').innerHTML = memos.map((m, idx) => `
-    <div class="memo-item"><span>${m}</span><button onclick="delMemo(${idx})" style="border:none;background:none;color:#999;cursor:pointer">✕</button></div>
-  `).join('');
+
+  const memoList =
+    document.getElementById(
+      "memoList"
+    );
+
+
+  memoList.innerHTML =
+    memos.map(
+      (memo, index) => `
+
+        <div class="memo-item">
+
+          <span>
+            ${escapeHtml(memo)}
+          </span>
+
+          <button
+            onclick="delMemo(${index})"
+            style="
+              border:none;
+              background:none;
+              color:#999;
+              cursor:pointer;
+            "
+          >
+            ✕
+          </button>
+
+        </div>
+
+      `
+
+    ).join("");
+
 }
+
+
+
+// =========================================================
+// 시작
+// =========================================================
+
 
 loadData();
+
 renderMemos();
+
+
 </script>
+
+
 </body>
+
 </html>
