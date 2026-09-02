@@ -1,13 +1,13 @@
-import os, json, datetime, urllib.request, sys
+import os, json, datetime, urllib.request, urllib.error, sys
 
 api_key = os.environ.get("GEMINI_API_KEY")
 
-# 1. API 키가 제대로 들어왔는지 검사
 if not api_key or api_key.strip() == "":
     print("❌ 에러: GEMINI_API_KEY가 비어있습니다. GitHub Secrets 설정을 확인하세요.")
     sys.exit(1)
 
-url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key.strip()}"
+# 모델 주소를 latest 규격으로 정확히 지정
+url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={api_key.strip()}"
 
 prompt = """오늘 온라인 커뮤니티와 SNS에서 직장 일상 및 연애 분야로 추천수/반응이 가장 폭발한 소재 정확히 10개를 뽑아줘.
 각 항목마다 추천수가 가장 높았던 '실제 베스트 댓글 2~3개'와 댓글 추천수(따봉수)를 함께 구성해줘.
@@ -25,8 +25,13 @@ try:
     result = json.loads(res.read().decode('utf-8'))
     raw_text = result['candidates'][0]['content']['parts'][0]['text']
     new_items = json.loads(raw_text.strip())
+except urllib.error.HTTPError as e:
+    # 404 등 에러 발생 시 구글 서버가 보낸 상세 원인 출력
+    error_msg = e.read().decode('utf-8')
+    print(f"❌ 구글 API 서버 상세 에러 ({e.code}):\n{error_msg}")
+    sys.exit(1)
 except Exception as e:
-    print(f"❌ API 요청 중 에러 발생: {e}")
+    print(f"❌ 알 수 없는 에러 발생: {e}")
     sys.exit(1)
 
 today = datetime.datetime.now().strftime("%Y-%m-%d")
